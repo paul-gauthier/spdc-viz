@@ -94,8 +94,8 @@ function OpticMount({ position, rotationY = 0, opticMaterial, label, geometryArg
         {opticMaterial}
       </mesh>
       <mesh position={[0, -(POST_HEIGHT + opticRadius) / 2, 0]} castShadow>
-        <cylinderGeometry args={[0.04, 0.04, postHeight, 24]} />
-        <meshStandardMaterial color="#777" metalness={0.7} roughness={0.35} />
+        <cylinderGeometry args={[0.25, 0.25, postHeight, 32]} />
+        <meshStandardMaterial color="#d4d4d8" metalness={0.9} roughness={0.18} />
       </mesh>
       <Label position={[0.18, 0.32, 0.18]}>{label}</Label>
     </group>
