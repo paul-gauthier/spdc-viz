@@ -1,121 +1,235 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import React, { useMemo, useRef } from 'react'
+import * as THREE from 'three'
+import { Canvas, useFrame } from '@react-three/fiber'
+import { OrbitControls, Html, Line } from '@react-three/drei'
 
-function App() {
-  const [count, setCount] = useState(0)
+function pointOnPolyline(points, t) {
+  const segLengths = []
+  let total = 0
+
+  for (let i = 0; i < points.length - 1; i++) {
+    const len = points[i].distanceTo(points[i + 1])
+    segLengths.push(len)
+    total += len
+  }
+
+  let d = THREE.MathUtils.clamp(t, 0, 1) * total
+
+  for (let i = 0; i < segLengths.length; i++) {
+    if (d <= segLengths[i]) {
+      return new THREE.Vector3().lerpVectors(
+        points[i],
+        points[i + 1],
+        d / segLengths[i]
+      )
+    }
+    d -= segLengths[i]
+  }
+
+  return points[points.length - 1].clone()
+}
+
+function Label({ children, position }) {
+  return (
+    <Html position={position} center distanceFactor={10}>
+      <div
+        style={{
+          padding: '4px 8px',
+          background: 'rgba(255,255,255,0.9)',
+          border: '1px solid #ddd',
+          borderRadius: 6,
+          fontSize: 12,
+          whiteSpace: 'nowrap',
+        }}
+      >
+        {children}
+      </div>
+    </Html>
+  )
+}
+
+function Table() {
+  return (
+    <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
+      <planeGeometry args={[10, 6]} />
+      <meshStandardMaterial color="#2a2a2a" metalness={0.2} roughness={0.8} />
+    </mesh>
+  )
+}
+
+function BreadboardHoles() {
+  const dots = []
+  for (let x = -4.5; x <= 4.5; x += 0.4) {
+    for (let z = -2.5; z <= 2.5; z += 0.4) {
+      dots.push(
+        <mesh key={`${x}-${z}`} position={[x, 0.001, z]} rotation={[-Math.PI / 2, 0, 0]}>
+          <ringGeometry args={[0.018, 0.03, 16]} />
+          <meshBasicMaterial color="#444" />
+        </mesh>
+      )
+    }
+  }
+  return <group>{dots}</group>
+}
+
+function Laser({ position }) {
+  return (
+    <group position={position}>
+      <mesh castShadow>
+        <boxGeometry args={[0.5, 0.18, 0.18]} />
+        <meshStandardMaterial color="#666" metalness={0.6} roughness={0.4} />
+      </mesh>
+      <Label position={[0, 0.28, 0]}>Laser</Label>
+    </group>
+  )
+}
+
+function Mirror({ position, rotationY = 0, name }) {
+  return (
+    <group position={position} rotation={[0, rotationY, 0]}>
+      <mesh castShadow>
+        <boxGeometry args={[0.04, 0.35, 0.25]} />
+        <meshStandardMaterial color="#bfc7cf" metalness={0.9} roughness={0.15} />
+      </mesh>
+      <mesh position={[0, -0.18, 0]} castShadow>
+        <cylinderGeometry args={[0.04, 0.04, 0.25, 24]} />
+        <meshStandardMaterial color="#777" metalness={0.7} roughness={0.35} />
+      </mesh>
+      <Label position={[0, 0.35, 0]}>{name}</Label>
+    </group>
+  )
+}
+
+function Lens({ position }) {
+  return (
+    <group position={position}>
+      <mesh rotation={[0, 0, Math.PI / 2]} castShadow>
+        <cylinderGeometry args={[0.13, 0.13, 0.05, 32]} />
+        <meshStandardMaterial
+          color="#88bbff"
+          transparent
+          opacity={0.45}
+          metalness={0.1}
+          roughness={0.05}
+        />
+      </mesh>
+      <mesh position={[0, -0.18, 0]} castShadow>
+        <cylinderGeometry args={[0.04, 0.04, 0.25, 24]} />
+        <meshStandardMaterial color="#777" metalness={0.7} roughness={0.35} />
+      </mesh>
+      <Label position={[0, 0.35, 0]}>Lens</Label>
+    </group>
+  )
+}
+
+function FiberCoupler({ position }) {
+  return (
+    <group position={position}>
+      <mesh castShadow>
+        <boxGeometry args={[0.28, 0.2, 0.2]} />
+        <meshStandardMaterial color="#555" metalness={0.5} roughness={0.5} />
+      </mesh>
+      <mesh position={[0.2, 0, 0]} castShadow>
+        <cylinderGeometry args={[0.03, 0.03, 0.18, 24]} rotation={[0, 0, Math.PI / 2]} />
+        <meshStandardMaterial color="#aaa" metalness={0.8} roughness={0.2} />
+      </mesh>
+      <Label position={[0, 0.3, 0]}>Fiber</Label>
+    </group>
+  )
+}
+
+function Beam({ points }) {
+  const pulseRef = useRef()
+
+  useFrame((state) => {
+    const u = (state.clock.getElapsedTime() * 0.18) % 1
+    const p = pointOnPolyline(points, u)
+    if (pulseRef.current) pulseRef.current.position.copy(p)
+  })
+
+  const linePoints = useMemo(() => points.map((p) => [p.x, p.y, p.z]), [points])
+
+  return (
+    <group>
+      <Line
+        points={linePoints}
+        color="#ff2a2a"
+        lineWidth={3}
+        transparent
+        opacity={0.9}
+      />
+      <mesh ref={pulseRef} castShadow>
+        <sphereGeometry args={[0.045, 24, 24]} />
+        <meshBasicMaterial color="#ff8080" />
+      </mesh>
+    </group>
+  )
+}
+
+function OpticalScene() {
+  const beamHeight = 0.22
+
+  const optics = useMemo(
+    () => ({
+      laser: new THREE.Vector3(-3.7, beamHeight, -1.7),
+      mirror1: new THREE.Vector3(-1.5, beamHeight, -1.7),
+      mirror2: new THREE.Vector3(-1.5, beamHeight, 1.2),
+      lens: new THREE.Vector3(1.1, beamHeight, 1.2),
+      fiber: new THREE.Vector3(3.5, beamHeight, 1.2),
+    }),
+    []
+  )
+
+  const beamPoints = useMemo(
+    () => [
+      optics.laser.clone(),
+      optics.mirror1.clone(),
+      optics.mirror2.clone(),
+      optics.lens.clone(),
+      optics.fiber.clone(),
+    ],
+    [optics]
+  )
 
   return (
     <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+      <ambientLight intensity={0.7} />
+      <directionalLight position={[4, 8, 4]} intensity={1.2} castShadow />
 
-      <div className="ticks"></div>
+      <Table />
+      <BreadboardHoles />
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+      <Laser position={[-3.95, 0.18, -1.7]} />
+      <Mirror position={[-1.5, 0.28, -1.7]} rotationY={0} name="Mirror 1" />
+      <Mirror position={[-1.5, 0.28, 1.2]} rotationY={Math.PI / 2} name="Mirror 2" />
+      <Lens position={[1.1, 0.28, 1.2]} />
+      <FiberCoupler position={[3.5, 0.2, 1.2]} />
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
+      <Beam points={beamPoints} />
+
+      <OrbitControls
+        makeDefault
+        target={[0, 0.15, 0]}
+        enablePan
+        minDistance={4}
+        maxDistance={14}
+        minPolarAngle={0.15}
+        maxPolarAngle={Math.PI / 2.05}
+      />
     </>
   )
 }
 
-export default App
+export default function App() {
+  return (
+    <div style={{ width: '100%', height: 560 }}>
+      <Canvas
+        shadows
+        camera={{ position: [0, 6.5, 5.5], fov: 42 }}
+        dpr={[1, 2]}
+      >
+        <OpticalScene />
+      </Canvas>
+    </div>
+  )
+}
