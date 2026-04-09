@@ -190,7 +190,7 @@ function InteractiveMirror({ position, angle, onAngleChange, name, onDragStart, 
     (e) => {
       if (!dragRef.current || !e.point) return
       const delta = getAngle(e.point) - dragRef.current.startPA
-      onAngleChange(dragRef.current.startAngle + delta)
+      onAngleChange(dragRef.current.startAngle - delta)
     },
     [getAngle, onAngleChange],
   )
