@@ -78,7 +78,7 @@ function BreadboardHoles() {
 
 function Laser({ position }) {
   return (
-    <OpticMount position={position} label="Laser" geometryArgs={[0.15, 0.15, 1, 32]} opticMaterial={
+    <OpticMount position={position} label="Laser" geometryArgs={[0.15, 0.25, 1, 32]} opticMaterial={
       <meshStandardMaterial color="#666" metalness={0.6} roughness={0.4} />
     } />
   )
