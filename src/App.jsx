@@ -23,7 +23,7 @@ export default function App() {
 
   const handleJitter = useCallback(() => {
     const initialOpticYaws = buildInitialOpticYaws(level)
-    const jitterAmount = 0.01
+    const jitterAmount = 0.02
 
     setOpticYaws((current) =>
       Object.fromEntries(
