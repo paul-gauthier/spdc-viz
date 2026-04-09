@@ -93,8 +93,8 @@ function OpticMount({ position, rotationY = 0, opticMaterial, label }) {
         <cylinderGeometry args={[0.5, 0.5, 0.05, 32]} />
         {opticMaterial}
       </mesh>
-      <mesh position={[0, -0.18, 0]} castShadow>
-        <cylinderGeometry args={[0.04, 0.04, 0.25, 24]} />
+      <mesh position={[0, -1.5, 0]} castShadow>
+        <cylinderGeometry args={[0.04, 0.04, 3, 24]} />
         <meshStandardMaterial color="#777" metalness={0.7} roughness={0.35} />
       </mesh>
       <Label position={[0.18, 0.32, 0.18]}>{label}</Label>
@@ -167,7 +167,7 @@ function Beam({ points }) {
 }
 
 function OpticalScene() {
-  const beamHeight = 0.22
+  const beamHeight = 3
 
   const optics = useMemo(
     () => ({
@@ -199,11 +199,11 @@ function OpticalScene() {
       <Table />
       <BreadboardHoles />
 
-      <Laser position={[-3.95, 0.18, -1.7]} />
-      <Mirror position={[-1.5, 0.28, -1.7]} rotationY={0} name="Mirror 1" />
-      <Mirror position={[-1.5, 0.28, 1.2]} rotationY={Math.PI / 2} name="Mirror 2" />
-      <Lens position={[1.1, 0.28, 1.2]} />
-      <FiberCoupler position={[3.5, 0.2, 1.2]} />
+      <Laser position={[-3.95, 3, -1.7]} />
+      <Mirror position={[-1.5, 3, -1.7]} rotationY={0} name="Mirror 1" />
+      <Mirror position={[-1.5, 3, 1.2]} rotationY={Math.PI / 2} name="Mirror 2" />
+      <Lens position={[1.1, 3, 1.2]} />
+      <FiberCoupler position={[3.5, 3, 1.2]} />
 
       <Beam points={beamPoints} />
 
