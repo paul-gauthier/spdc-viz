@@ -27,7 +27,7 @@ export const OPTIC_TYPES = {
       getBodyProps: () => ({}),
     },
     interaction: {
-      rotatable: false,
+      rotatable: true,
     },
     simulation: {
       isTraceElement: false,
