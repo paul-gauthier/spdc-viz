@@ -47,7 +47,7 @@ const DEFAULT_LEVEL = {
   },
   beam: {
     source: 'laser',
-    route: ['mirror1', 'mirror2'],
+    maxBounces: 8,
     tailLength: 8,
   },
 }
@@ -130,21 +130,34 @@ function intersectRayWithMirror(origin, dir, center, yaw) {
   return { point, normal }
 }
 
-function computeBeamPath({ origin, direction, elements, tailLength = 8 }) {
+function computeBeamPath({ origin, direction, elements, tailLength = 8, maxBounces = 8 }) {
   const path = [origin.clone()]
 
   let rayOrigin = origin.clone()
   let rayDirection = direction.clone().normalize()
 
-  for (const element of elements) {
-    if (element.type !== 'mirror') continue
+  for (let bounce = 0; bounce < maxBounces; bounce += 1) {
+    let closestHit = null
+    let closestDistance = Infinity
 
-    const hit = intersectRayWithMirror(rayOrigin, rayDirection, element.position, element.yaw)
-    if (!hit) break
+    for (const element of elements) {
+      if (element.type !== 'mirror') continue
 
-    path.push(hit.point.clone())
-    rayDirection = reflectDir(rayDirection, hit.normal)
-    rayOrigin = hit.point.clone().add(rayDirection.clone().multiplyScalar(BEAM_TRACE_EPSILON))
+      const hit = intersectRayWithMirror(rayOrigin, rayDirection, element.position, element.yaw)
+      if (!hit) continue
+
+      const distance = rayOrigin.distanceTo(hit.point)
+      if (distance < closestDistance) {
+        closestHit = hit
+        closestDistance = distance
+      }
+    }
+
+    if (!closestHit) break
+
+    path.push(closestHit.point.clone())
+    rayDirection = reflectDir(rayDirection, closestHit.normal)
+    rayOrigin = closestHit.point.clone().add(rayDirection.clone().multiplyScalar(BEAM_TRACE_EPSILON))
   }
 
   path.push(path[path.length - 1].clone().add(rayDirection.clone().multiplyScalar(tailLength)))
@@ -466,13 +479,14 @@ function OpticalScene({ is2D, level, opticYaws, onOpticYawChange }) {
 
   const beamPoints = useMemo(() => {
     const source = resolvedLevel.optics[resolvedLevel.beam.source]
-    const elements = resolvedLevel.beam.route.map((id) => resolvedLevel.optics[id]).filter(Boolean)
+    const elements = Object.values(resolvedLevel.optics).filter((optic) => optic.type === 'mirror')
 
     return computeBeamPath({
       origin: source.beamPosition,
       direction: yawToDirection(source.yaw),
       elements,
       tailLength: resolvedLevel.beam.tailLength,
+      maxBounces: resolvedLevel.beam.maxBounces,
     })
   }, [resolvedLevel])
 
