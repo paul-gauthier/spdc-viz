@@ -92,8 +92,8 @@ function Mirror({ position, rotationY = 0, name }) {
       <mesh rotation={[0, 0, Math.PI / 2]} castShadow>
         <cylinderGeometry args={[0.13, 0.13, 0.05, 32]} />
         <meshStandardMaterial attach="material-0" color="#666" metalness={0.7} roughness={0.35} />
-        <meshStandardMaterial attach="material-1" color="#dfe6ee" metalness={1} roughness={0.02} />
-        <meshStandardMaterial attach="material-2" color="#dfe6ee" metalness={1} roughness={0.02} />
+        <meshStandardMaterial attach="material-1" color="#dfe6ee" metalness={0.7} roughness={0.1} />
+        <meshStandardMaterial attach="material-2" color="#dfe6ee" metalness={0.7} roughness={0.1} />
       </mesh>
       <mesh position={[0, -0.18, 0]} castShadow>
         <cylinderGeometry args={[0.04, 0.04, 0.25, 24]} />
