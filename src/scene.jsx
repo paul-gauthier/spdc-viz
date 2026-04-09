@@ -153,11 +153,13 @@ function Optic({ optic, coupling = 0, onOpticYawChange, onDragStart, onDragEnd }
   const Body = opticType.render.Body
   const bodyProps = opticType.render.getBodyProps?.({ optic, coupling }) ?? {}
   const rotatable = !!opticType.interaction?.rotatable
+  const handleYawOffset = optic.handleYawOffset ?? opticType.interaction?.handleYawOffset ?? 0
 
   return (
     <MountedOptic
       position={optic.renderPosition}
       yaw={optic.yaw}
+      handleYawOffset={handleYawOffset}
       label={optic.label ?? opticType.defaults?.label ?? optic.id}
       opticRadius={opticType.render.opticRadius}
       rotatable={rotatable}

@@ -131,6 +131,7 @@ export function FiberBody({ coupling = 0 }) {
 export function MountedOptic({
   position,
   yaw = 0,
+  handleYawOffset = 0,
   label,
   opticRadius,
   rotatable = false,
@@ -223,6 +224,7 @@ export function MountedOptic({
     [dragging, rotatable],
   )
 
+  const handleYaw = yaw + handleYawOffset
   const postHeight = POST_HEIGHT - opticRadius
   const ringColor = dragging ? '#ffdd00' : hovered ? '#ffaa00' : '#ff8800'
 
@@ -259,7 +261,7 @@ export function MountedOptic({
             <meshStandardMaterial color={ringColor} metalness={0.4} roughness={0.3} />
           </mesh>
 
-          <group rotation={[0, yaw, 0]}>
+          <group rotation={[0, handleYaw, 0]}>
             <mesh position={[0.72, 0, 0]} rotation={[0, 0, -Math.PI / 2]}>
               <coneGeometry args={[0.05, 0.14, 8]} />
               <meshStandardMaterial color={ringColor} />
