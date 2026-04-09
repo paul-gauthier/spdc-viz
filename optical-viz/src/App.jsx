@@ -173,11 +173,11 @@ function OpticalScene() {
 
   const optics = useMemo(
     () => ({
-      laser: new THREE.Vector3(-3.7, beamHeight, -1.7),
-      mirror1: new THREE.Vector3(-1.5, beamHeight, -1.7),
-      mirror2: new THREE.Vector3(-1.5, beamHeight, 1.2),
-      lens: new THREE.Vector3(1.1, beamHeight, 1.2),
-      fiber: new THREE.Vector3(3.5, beamHeight, 1.2),
+      laser: new THREE.Vector3(-4.25, beamHeight, -1.5),
+      mirror1: new THREE.Vector3(-1.5, beamHeight, -1.5),
+      mirror2: new THREE.Vector3(-1.5, beamHeight, 1.5),
+      lens: new THREE.Vector3(1.5, beamHeight, 1.5),
+      fiber: new THREE.Vector3(3.5, beamHeight, 1.5),
     }),
     []
   )
@@ -202,11 +202,11 @@ function OpticalScene() {
       <Table />
       <BreadboardHoles />
 
-      <Laser position={[-3.95, POST_HEIGHT, -1.7]} />
-      <Mirror position={[-1.5, POST_HEIGHT, -1.7]} rotationY={0} name="Mirror 1" />
-      <Mirror position={[-1.5, POST_HEIGHT, 1.2]} rotationY={Math.PI / 2} name="Mirror 2" />
-      <Lens position={[1.1, POST_HEIGHT, 1.2]} />
-      <FiberCoupler position={[3.5, POST_HEIGHT, 1.2]} />
+      <Laser position={[-4.5, POST_HEIGHT, -1.5]} />
+      <Mirror position={[-1.5, POST_HEIGHT, -1.5]} rotationY={0} name="Mirror 1" />
+      <Mirror position={[-1.5, POST_HEIGHT, 1.5]} rotationY={Math.PI / 2} name="Mirror 2" />
+      <Lens position={[1.5, POST_HEIGHT, 1.5]} />
+      <FiberCoupler position={[3.5, POST_HEIGHT, 1.5]} />
 
       <Beam points={beamPoints} />
 
