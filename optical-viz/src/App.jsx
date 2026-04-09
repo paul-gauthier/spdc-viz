@@ -6,6 +6,9 @@ import { OrbitControls, Html, Line, Environment } from '@react-three/drei'
 
 const POST_HEIGHT = 2
 const MIRROR_RADIUS = 0.5
+const FIBER_LENGTH = 1
+const FIBER_NEGATIVE_X_FACE_RADIUS = 0.25
+const FIBER_POSITIVE_X_FACE_RADIUS = 0.15
 const BEAM_TRACE_EPSILON = 1e-4
 const Y_AXIS = new THREE.Vector3(0, 1, 0)
 
@@ -125,6 +128,40 @@ function intersectRayWithMirror(origin, dir, center, yaw) {
   return { point, normal }
 }
 
+function intersectRayWithFiberFace(origin, dir, center, yaw) {
+  const axis = yawToDirection(yaw)
+  const denom = dir.dot(axis)
+
+  if (Math.abs(denom) < 1e-6) return null
+
+  const faceConfigs = [
+    { offset: -FIBER_LENGTH / 2, radius: FIBER_NEGATIVE_X_FACE_RADIUS },
+    { offset: FIBER_LENGTH / 2, radius: FIBER_POSITIVE_X_FACE_RADIUS },
+  ]
+
+  let closestHit = null
+  let closestDistance = Infinity
+
+  for (const { offset, radius } of faceConfigs) {
+    const faceCenter = center.clone().add(axis.clone().multiplyScalar(offset))
+    const t = new THREE.Vector3().subVectors(faceCenter, origin).dot(axis) / denom
+    if (t <= 0) continue
+
+    const point = origin.clone().add(dir.clone().multiplyScalar(t))
+    const radialOffset = new THREE.Vector3().subVectors(point, faceCenter)
+    radialOffset.sub(axis.clone().multiplyScalar(radialOffset.dot(axis)))
+
+    if (radialOffset.length() > radius) continue
+
+    if (t < closestDistance) {
+      closestHit = { point }
+      closestDistance = t
+    }
+  }
+
+  return closestHit
+}
+
 function computeBeamPath({ origin, direction, elements, tailLength = 8, maxBounces = 8 }) {
   const path = [origin.clone()]
 
@@ -136,9 +173,16 @@ function computeBeamPath({ origin, direction, elements, tailLength = 8, maxBounc
     let closestDistance = Infinity
 
     for (const element of elements) {
-      if (element.type !== 'mirror') continue
+      let hit = null
 
-      const hit = intersectRayWithMirror(rayOrigin, rayDirection, element.position, element.yaw)
+      if (element.type === 'mirror') {
+        const mirrorHit = intersectRayWithMirror(rayOrigin, rayDirection, element.position, element.yaw)
+        if (mirrorHit) hit = { ...mirrorHit, type: 'mirror' }
+      } else if (element.type === 'fiber') {
+        const fiberHit = intersectRayWithFiberFace(rayOrigin, rayDirection, element.position, element.yaw)
+        if (fiberHit) hit = { ...fiberHit, type: 'fiber' }
+      }
+
       if (!hit) continue
 
       const distance = rayOrigin.distanceTo(hit.point)
@@ -151,6 +195,9 @@ function computeBeamPath({ origin, direction, elements, tailLength = 8, maxBounc
     if (!closestHit) break
 
     path.push(closestHit.point.clone())
+
+    if (closestHit.type === 'fiber') return path
+
     rayDirection = reflectDir(rayDirection, closestHit.normal)
     rayOrigin = closestHit.point.clone().add(rayDirection.clone().multiplyScalar(BEAM_TRACE_EPSILON))
   }
@@ -498,7 +545,7 @@ function OpticalScene({ is2D, level, opticYaws, onOpticYawChange }) {
 
   const beamPoints = useMemo(() => {
     const source = resolvedLevel.opticsById[resolvedLevel.beam.source]
-    const elements = resolvedLevel.optics.filter((optic) => optic.type === 'mirror')
+    const elements = resolvedLevel.optics.filter((optic) => optic.type === 'mirror' || optic.type === 'fiber')
 
     return computeBeamPath({
       origin: source.beamPosition,
