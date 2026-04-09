@@ -38,7 +38,7 @@ export default function App() {
         camera={
           is2D
             ? { position: [0, 15, 0], zoom: 80, near: 0.1, far: 100 }
-            : { position: [0, 6.5, 5.5], fov: 42 }
+            : { position: [0, 8.5, 8.5], fov: 50 }
         }
         dpr={[1, 2]}
         style={{

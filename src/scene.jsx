@@ -1,10 +1,11 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
+import * as THREE from 'three'
 import { useFrame, useThree } from '@react-three/fiber'
 import { Environment, Line, OrbitControls } from '@react-three/drei'
 import { resolveLevel } from './levels'
 import { getOpticType, isTraceElement } from './opticRegistry'
 import { MountedOptic } from './optics'
-import { getBoardSize, holeToWorld } from './simulationCore'
+import { getBoardSize, holeToWorld, POST_HEIGHT } from './simulationCore'
 import { traceAllBeams } from './simulation'
 
 export function Beam({ points, baseColor = '#2a6cff', flowColor = '#80b3ff' }) {
@@ -91,6 +92,62 @@ function Fit2DCamera({ board, enabled }) {
   return null
 }
 
+function Fit3DCamera({ board, enabled, controlsRef }) {
+  const { camera, size } = useThree()
+
+  useEffect(() => {
+    if (!enabled || !camera.isPerspectiveCamera || size.width === 0 || size.height === 0) return
+
+    const { width, depth } = getBoardSize(board)
+    const target = new THREE.Vector3(0, POST_HEIGHT / 2, 0)
+    const viewDirection = new THREE.Vector3(0, 0.72, 0.9).normalize()
+    const forward = viewDirection.clone().multiplyScalar(-1)
+    const worldUp = new THREE.Vector3(0, 1, 0)
+    const right = forward.clone().cross(worldUp).normalize()
+    const up = right.clone().cross(forward).normalize()
+    const halfExtents = new THREE.Vector3(
+      width / 2 + board.pitch,
+      POST_HEIGHT / 2 + board.pitch * 1.5,
+      depth / 2 + board.pitch,
+    )
+
+    const projectedHalfWidth =
+      halfExtents.x * Math.abs(right.x) +
+      halfExtents.y * Math.abs(right.y) +
+      halfExtents.z * Math.abs(right.z)
+    const projectedHalfHeight =
+      halfExtents.x * Math.abs(up.x) +
+      halfExtents.y * Math.abs(up.y) +
+      halfExtents.z * Math.abs(up.z)
+    const projectedHalfDepth =
+      halfExtents.x * Math.abs(forward.x) +
+      halfExtents.y * Math.abs(forward.y) +
+      halfExtents.z * Math.abs(forward.z)
+
+    const verticalFov = THREE.MathUtils.degToRad(camera.fov)
+    const horizontalFov = 2 * Math.atan(Math.tan(verticalFov / 2) * (size.width / size.height))
+    const fitHeightDistance = projectedHalfHeight / Math.tan(verticalFov / 2)
+    const fitWidthDistance = projectedHalfWidth / Math.tan(horizontalFov / 2)
+    const distance = (Math.max(fitHeightDistance, fitWidthDistance) + projectedHalfDepth) * 1.05
+    const position = target.clone().add(viewDirection.multiplyScalar(distance))
+
+    camera.position.copy(position)
+    camera.near = 0.1
+    camera.far = Math.max(100, distance + projectedHalfDepth + 20)
+    camera.updateProjectionMatrix()
+
+    if (controlsRef.current) {
+      controlsRef.current.target.copy(target)
+      controlsRef.current.update()
+      return
+    }
+
+    camera.lookAt(target)
+  }, [board, camera, controlsRef, enabled, size.height, size.width])
+
+  return null
+}
+
 function Optic({ optic, coupling = 0, onOpticYawChange, onDragStart, onDragEnd }) {
   const opticType = getOpticType(optic.type)
   const Body = opticType.render.Body
@@ -115,6 +172,7 @@ function Optic({ optic, coupling = 0, onOpticYawChange, onDragStart, onDragEnd }
 
 export function OpticalScene({ is2D, level, opticYaws, onOpticYawChange }) {
   const [isDragging, setIsDragging] = useState(false)
+  const controlsRef = useRef(null)
 
   const resolvedLevel = useMemo(() => resolveLevel(level, opticYaws), [level, opticYaws])
   const { board, optics, opticsById, beams } = resolvedLevel
@@ -136,6 +194,7 @@ export function OpticalScene({ is2D, level, opticYaws, onOpticYawChange }) {
       <Environment preset="city" />
 
       <Fit2DCamera board={board} enabled={is2D} />
+      <Fit3DCamera board={board} enabled={!is2D} controlsRef={controlsRef} />
       <Table board={board} />
       <BreadboardHoles board={board} />
 
@@ -160,11 +219,12 @@ export function OpticalScene({ is2D, level, opticYaws, onOpticYawChange }) {
       ))}
 
       <OrbitControls
+        ref={controlsRef}
         makeDefault
         enabled={!isDragging}
         enableRotate={!is2D}
         enableZoom={!is2D}
-        target={[0, 0, 0]}
+        target={[0, POST_HEIGHT / 2, 0]}
         enablePan
         minDistance={4}
         maxDistance={14}
