@@ -80,6 +80,8 @@ export function computeSpdcOpeningAngle(direction, yaw, optic = {}) {
   const openingAngleScale = optic.openingAngleScale ?? 1
   const incidenceAngle = angleBetweenDirectionAndOpticNormal(direction, yaw)
 
+  if (incidenceAngle >= Math.PI / 4) return null
+
   return THREE.MathUtils.clamp(baseOpeningAngle + incidenceAngle * openingAngleScale, 0, Math.PI / 2 - 1e-3)
 }
 

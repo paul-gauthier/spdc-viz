@@ -112,6 +112,15 @@ export const OPTIC_TYPES = {
         })
         const exitPoint = hit.point.clone().add(axis.clone().multiplyScalar(BEAM_TRACE_EPSILON * 4))
 
+        if (openingAngle === null) {
+          return {
+            continueBeam: {
+              origin: exitPoint,
+              direction: axis,
+            },
+          }
+        }
+
         return {
           continueBeam: {
             origin: exitPoint,
