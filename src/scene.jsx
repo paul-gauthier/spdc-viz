@@ -278,11 +278,6 @@ export function OpticalScene({
       )
     })
 
-    beamResult.beams.forEach((beam) => {
-      beam.path.forEach((point) => {
-        bounds.expandByPoint(point)
-      })
-    })
 
     beamResult.effects
       .filter((effect) => effect.type === 'spdcCone')
@@ -308,7 +303,7 @@ export function OpticalScene({
     bounds.expandByScalar(board.pitch * 0.35)
 
     return bounds
-  }, [beamResult.beams, beamResult.effects, board, optics])
+  }, [beamResult.effects, board, optics])
 
   return (
     <>
