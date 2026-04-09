@@ -7,6 +7,102 @@ import { OrbitControls, Html, Line, Environment } from '@react-three/drei'
 const POST_HEIGHT = 2
 const MIRROR_RADIUS = 0.5
 const BEAM_TRACE_EPSILON = 1e-4
+const Y_AXIS = new THREE.Vector3(0, 1, 0)
+
+const DEFAULT_LEVEL = {
+  board: {
+    holesX: 10,
+    holesY: 6,
+    pitch: 1,
+  },
+  optics: {
+    laser: {
+      type: 'laser',
+      hole: [0, 1],
+      yaw: 0,
+      beamExitOffset: [0.25, 0, 0],
+    },
+    mirror1: {
+      type: 'mirror',
+      hole: [3, 1],
+      yaw: Math.PI / 4,
+      label: 'Mirror 1',
+    },
+    mirror2: {
+      type: 'mirror',
+      hole: [3, 4],
+      yaw: Math.PI / 4,
+      label: 'Mirror 2',
+    },
+    lens: {
+      type: 'lens',
+      hole: [6, 4],
+      yaw: 0,
+    },
+    fiber: {
+      type: 'fiber',
+      hole: [8, 4],
+      yaw: 0,
+    },
+  },
+  beam: {
+    source: 'laser',
+    route: ['mirror1', 'mirror2'],
+    tailLength: 8,
+  },
+}
+
+function getBoardSize(board) {
+  return {
+    width: board.holesX * board.pitch,
+    depth: board.holesY * board.pitch,
+  }
+}
+
+function holeToWorld(board, hole, y = POST_HEIGHT) {
+  const [holeX, holeY] = hole
+  return new THREE.Vector3(
+    (holeX - (board.holesX - 1) / 2) * board.pitch,
+    y,
+    (holeY - (board.holesY - 1) / 2) * board.pitch,
+  )
+}
+
+function yawToDirection(yaw) {
+  return new THREE.Vector3(Math.cos(yaw), 0, -Math.sin(yaw)).normalize()
+}
+
+function localOffsetToWorld(offset = [0, 0, 0], yaw = 0) {
+  return new THREE.Vector3(...offset).applyAxisAngle(Y_AXIS, yaw)
+}
+
+function resolveLevel(level, opticYaws = {}) {
+  const optics = Object.fromEntries(
+    Object.entries(level.optics).map(([id, optic]) => {
+      const yaw = opticYaws[id] ?? optic.yaw ?? 0
+      const position = holeToWorld(level.board, optic.hole)
+      const beamPosition = position.clone().add(localOffsetToWorld(optic.beamExitOffset, yaw))
+
+      return [
+        id,
+        {
+          ...optic,
+          id,
+          yaw,
+          position,
+          renderPosition: position.toArray(),
+          beamPosition,
+        },
+      ]
+    }),
+  )
+
+  return { ...level, optics }
+}
+
+function buildInitialOpticYaws(level) {
+  return Object.fromEntries(Object.entries(level.optics).map(([id, optic]) => [id, optic.yaw ?? 0]))
+}
 
 function reflectDir(incident, normal) {
   const d = incident.clone().normalize()
@@ -15,12 +111,12 @@ function reflectDir(incident, normal) {
   return d.sub(n.multiplyScalar(2 * dot)).normalize()
 }
 
-function mirrorNormal(rotY) {
-  return new THREE.Vector3(Math.cos(rotY), 0, -Math.sin(rotY))
+function mirrorNormal(yaw) {
+  return yawToDirection(yaw)
 }
 
-function intersectRayWithMirror(origin, dir, center, angle) {
-  const normal = mirrorNormal(angle)
+function intersectRayWithMirror(origin, dir, center, yaw) {
+  const normal = mirrorNormal(yaw)
   const denom = dir.dot(normal)
 
   if (Math.abs(denom) < 1e-6) return null
@@ -34,26 +130,24 @@ function intersectRayWithMirror(origin, dir, center, angle) {
   return { point, normal }
 }
 
-function computeBeamPath(laserPos, m1Pos, m1Angle, m2Pos, m2Angle) {
-  const mirrors = [
-    { position: m1Pos, angle: m1Angle },
-    { position: m2Pos, angle: m2Angle },
-  ]
-  const path = [laserPos.clone()]
+function computeBeamPath({ origin, direction, elements, tailLength = 8 }) {
+  const path = [origin.clone()]
 
-  let origin = laserPos.clone()
-  let dir = new THREE.Vector3().subVectors(m1Pos, laserPos).normalize()
+  let rayOrigin = origin.clone()
+  let rayDirection = direction.clone().normalize()
 
-  for (const mirror of mirrors) {
-    const hit = intersectRayWithMirror(origin, dir, mirror.position, mirror.angle)
+  for (const element of elements) {
+    if (element.type !== 'mirror') continue
+
+    const hit = intersectRayWithMirror(rayOrigin, rayDirection, element.position, element.yaw)
     if (!hit) break
 
     path.push(hit.point.clone())
-    dir = reflectDir(dir, hit.normal)
-    origin = hit.point.clone().add(dir.clone().multiplyScalar(BEAM_TRACE_EPSILON))
+    rayDirection = reflectDir(rayDirection, hit.normal)
+    rayOrigin = hit.point.clone().add(rayDirection.clone().multiplyScalar(BEAM_TRACE_EPSILON))
   }
 
-  path.push(path[path.length - 1].clone().add(dir.clone().multiplyScalar(8)))
+  path.push(path[path.length - 1].clone().add(rayDirection.clone().multiplyScalar(tailLength)))
   return path
 }
 
@@ -80,32 +174,45 @@ function Label({ children, position }) {
   )
 }
 
-function Table() {
+function Table({ board }) {
+  const { width, depth } = getBoardSize(board)
+
   return (
     <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
-      <planeGeometry args={[10, 6]} />
+      <planeGeometry args={[width, depth]} />
       <meshStandardMaterial color="#2a2a2a" metalness={0.2} roughness={0.8} />
     </mesh>
   )
 }
 
-function BreadboardHoles() {
+function BreadboardHoles({ board }) {
   const dots = []
-  for (let x = -4.5; x <= 4.5; x += 1)
-    for (let z = -2.5; z <= 2.5; z += 1)
+  const innerRadius = board.pitch * 0.075
+  const outerRadius = board.pitch * 0.125
+
+  for (let holeX = 0; holeX < board.holesX; holeX += 1)
+    for (let holeY = 0; holeY < board.holesY; holeY += 1) {
+      const position = holeToWorld(board, [holeX, holeY], 0.001)
       dots.push(
-        <mesh key={`${x}-${z}`} position={[x, 0.001, z]} rotation={[-Math.PI / 2, 0, 0]}>
-          <ringGeometry args={[0.075, 0.125, 16]} />
+        <mesh
+          key={`${holeX}-${holeY}`}
+          position={[position.x, position.y, position.z]}
+          rotation={[-Math.PI / 2, 0, 0]}
+        >
+          <ringGeometry args={[innerRadius, outerRadius, 16]} />
           <meshBasicMaterial color="#444" />
         </mesh>,
       )
+    }
+
   return <group>{dots}</group>
 }
 
-function Laser({ position }) {
+function Laser({ position, yaw = 0 }) {
   return (
     <OpticMount
       position={position}
+      yaw={yaw}
       label="Laser"
       geometryArgs={[0.15, 0.25, 1, 32]}
       opticMaterial={<meshStandardMaterial color="#666" metalness={0.6} roughness={0.4} />}
@@ -113,11 +220,12 @@ function Laser({ position }) {
   )
 }
 
-function OpticMount({ position, rotationY = 0, opticMaterial, label, geometryArgs = [0.5, 0.5, 0.05, 32] }) {
+function OpticMount({ position, yaw = 0, opticMaterial, label, geometryArgs = [0.5, 0.5, 0.05, 32] }) {
   const opticRadius = Math.max(geometryArgs[0], geometryArgs[1])
   const postHeight = POST_HEIGHT - opticRadius
+
   return (
-    <group position={position} rotation={[0, rotationY, 0]}>
+    <group position={position} rotation={[0, yaw, 0]}>
       <mesh rotation={[0, 0, Math.PI / 2]} castShadow>
         <cylinderGeometry args={geometryArgs} />
         {opticMaterial}
@@ -131,10 +239,11 @@ function OpticMount({ position, rotationY = 0, opticMaterial, label, geometryArg
   )
 }
 
-function Lens({ position }) {
+function Lens({ position, yaw = 0 }) {
   return (
     <OpticMount
       position={position}
+      yaw={yaw}
       label="Lens"
       opticMaterial={
         <meshStandardMaterial color="#88bbff" transparent opacity={0.45} metalness={0.1} roughness={0.05} />
@@ -143,10 +252,11 @@ function Lens({ position }) {
   )
 }
 
-function FiberCoupler({ position }) {
+function FiberCoupler({ position, yaw = 0 }) {
   return (
     <OpticMount
       position={position}
+      yaw={yaw}
       label="Fiber"
       geometryArgs={[0.25, 0.15, 1, 32]}
       opticMaterial={<meshStandardMaterial color="#555" metalness={0.5} roughness={0.5} />}
@@ -156,7 +266,7 @@ function FiberCoupler({ position }) {
 
 /* ───── interactive mirror ───── */
 
-function InteractiveMirror({ position, angle, onAngleChange, name, onDragStart, onDragEnd }) {
+function InteractiveMirror({ position, yaw, onYawChange, name, onDragStart, onDragEnd }) {
   const [hovered, setHovered] = useState(false)
   const [dragging, setDragging] = useState(false)
   const dragRef = useRef(null)
@@ -179,11 +289,11 @@ function InteractiveMirror({ position, angle, onAngleChange, name, onDragStart, 
       e.stopPropagation()
       e.target.setPointerCapture(e.pointerId)
       setDragging(true)
-      dragRef.current = { startPA: startPointerAngle, startAngle: angle }
+      dragRef.current = { startPointerAngle, startYaw: yaw }
       document.body.style.cursor = 'grabbing'
       onDragStart?.()
     },
-    [angle, getAngleFromRay, onDragStart],
+    [getAngleFromRay, onDragStart, yaw],
   )
 
   const handlePointerMove = useCallback(
@@ -192,10 +302,10 @@ function InteractiveMirror({ position, angle, onAngleChange, name, onDragStart, 
       const pointerAngle = getAngleFromRay(e.ray)
       if (pointerAngle === null) return
       e.stopPropagation()
-      const delta = pointerAngle - dragRef.current.startPA
-      onAngleChange(dragRef.current.startAngle - delta)
+      const delta = pointerAngle - dragRef.current.startPointerAngle
+      onYawChange(dragRef.current.startYaw - delta)
     },
-    [getAngleFromRay, onAngleChange],
+    [getAngleFromRay, onYawChange],
   )
 
   const endDrag = useCallback(
@@ -237,48 +347,48 @@ function InteractiveMirror({ position, angle, onAngleChange, name, onDragStart, 
     <group position={position}>
       {/* adjustment ring group — halfway down the post */}
       <group position={[0, -POST_HEIGHT / 2, 0]}>
-      {/* invisible drag surface — large disc for reliable pointer capture */}
-      <mesh
-        rotation={[-Math.PI / 2, 0, 0]}
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={endDrag}
-        onPointerCancel={endDrag}
-        onLostPointerCapture={endDrag}
-        onPointerOver={handlePointerOver}
-        onPointerOut={handlePointerOut}
-      >
-        <circleGeometry args={[1.4, 32]} />
-        <meshBasicMaterial visible={false} side={THREE.DoubleSide} />
-      </mesh>
-
-      {/* visible rotation ring */}
-      <mesh
-        rotation={[-Math.PI / 2, 0, 0]}
-        position={[0, -0.01, 0]}
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={endDrag}
-        onPointerCancel={endDrag}
-        onLostPointerCapture={endDrag}
-        onPointerOver={handlePointerOver}
-        onPointerOut={handlePointerOut}
-      >
-        <torusGeometry args={[0.65, 0.035, 12, 48]} />
-        <meshStandardMaterial color={ringColor} metalness={0.4} roughness={0.3} />
-      </mesh>
-
-      {/* direction indicator (small cone sitting on the ring) */}
-      <group rotation={[0, angle, 0]}>
-        <mesh position={[0.72, 0, 0]} rotation={[0, 0, -Math.PI / 2]}>
-          <coneGeometry args={[0.05, 0.14, 8]} />
-          <meshStandardMaterial color={ringColor} />
+        {/* invisible drag surface — large disc for reliable pointer capture */}
+        <mesh
+          rotation={[-Math.PI / 2, 0, 0]}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={endDrag}
+          onPointerCancel={endDrag}
+          onLostPointerCapture={endDrag}
+          onPointerOver={handlePointerOver}
+          onPointerOut={handlePointerOut}
+        >
+          <circleGeometry args={[1.4, 32]} />
+          <meshBasicMaterial visible={false} side={THREE.DoubleSide} />
         </mesh>
-      </group>
+
+        {/* visible rotation ring */}
+        <mesh
+          rotation={[-Math.PI / 2, 0, 0]}
+          position={[0, -0.01, 0]}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={endDrag}
+          onPointerCancel={endDrag}
+          onLostPointerCapture={endDrag}
+          onPointerOver={handlePointerOver}
+          onPointerOut={handlePointerOut}
+        >
+          <torusGeometry args={[0.65, 0.035, 12, 48]} />
+          <meshStandardMaterial color={ringColor} metalness={0.4} roughness={0.3} />
+        </mesh>
+
+        {/* direction indicator (small cone sitting on the ring) */}
+        <group rotation={[0, yaw, 0]}>
+          <mesh position={[0.72, 0, 0]} rotation={[0, 0, -Math.PI / 2]}>
+            <coneGeometry args={[0.05, 0.14, 8]} />
+            <meshStandardMaterial color={ringColor} />
+          </mesh>
+        </group>
       </group>
 
       {/* mirror disc */}
-      <group rotation={[0, angle, 0]}>
+      <group rotation={[0, yaw, 0]}>
         <mesh rotation={[0, 0, Math.PI / 2]} castShadow>
           <cylinderGeometry args={[opticR, opticR, 0.05, 32]} />
           <meshStandardMaterial attach="material-0" color="#888" metalness={0.8} roughness={0.3} />
@@ -348,24 +458,23 @@ function Beam({ points }) {
   )
 }
 
-function OpticalScene({ is2D, m1Angle, setM1Angle, m2Angle, setM2Angle }) {
+function OpticalScene({ is2D, level, opticYaws, onOpticYawChange }) {
   const [isDragging, setIsDragging] = useState(false)
 
-  const h = POST_HEIGHT
+  const resolvedLevel = useMemo(() => resolveLevel(level, opticYaws), [level, opticYaws])
+  const { board, optics } = resolvedLevel
 
-  const positions = useMemo(
-    () => ({
-      laser: new THREE.Vector3(-4.25, h, -1.5),
-      mirror1: new THREE.Vector3(-1.5, h, -1.5),
-      mirror2: new THREE.Vector3(-1.5, h, 1.5),
-    }),
-    [h],
-  )
+  const beamPoints = useMemo(() => {
+    const source = resolvedLevel.optics[resolvedLevel.beam.source]
+    const elements = resolvedLevel.beam.route.map((id) => resolvedLevel.optics[id]).filter(Boolean)
 
-  const beamPoints = useMemo(
-    () => computeBeamPath(positions.laser, positions.mirror1, m1Angle, positions.mirror2, m2Angle),
-    [positions, m1Angle, m2Angle],
-  )
+    return computeBeamPath({
+      origin: source.beamPosition,
+      direction: yawToDirection(source.yaw),
+      elements,
+      tailLength: resolvedLevel.beam.tailLength,
+    })
+  }, [resolvedLevel])
 
   return (
     <>
@@ -373,30 +482,30 @@ function OpticalScene({ is2D, m1Angle, setM1Angle, m2Angle, setM2Angle }) {
       <directionalLight position={[4, 8, 4]} intensity={1.2} castShadow />
       <Environment preset="city" />
 
-      <Table />
-      <BreadboardHoles />
+      <Table board={board} />
+      <BreadboardHoles board={board} />
 
-      <Laser position={[-4.5, h, -1.5]} />
+      <Laser position={optics.laser.renderPosition} yaw={optics.laser.yaw} />
 
       <InteractiveMirror
-        position={[-1.5, h, -1.5]}
-        angle={m1Angle}
-        onAngleChange={setM1Angle}
-        name="Mirror 1"
+        position={optics.mirror1.renderPosition}
+        yaw={optics.mirror1.yaw}
+        onYawChange={(yaw) => onOpticYawChange('mirror1', yaw)}
+        name={optics.mirror1.label ?? 'Mirror 1'}
         onDragStart={() => setIsDragging(true)}
         onDragEnd={() => setIsDragging(false)}
       />
       <InteractiveMirror
-        position={[-1.5, h, 1.5]}
-        angle={m2Angle}
-        onAngleChange={setM2Angle}
-        name="Mirror 2"
+        position={optics.mirror2.renderPosition}
+        yaw={optics.mirror2.yaw}
+        onYawChange={(yaw) => onOpticYawChange('mirror2', yaw)}
+        name={optics.mirror2.label ?? 'Mirror 2'}
         onDragStart={() => setIsDragging(true)}
         onDragEnd={() => setIsDragging(false)}
       />
 
-      <Lens position={[1.5, h, 1.5]} />
-      <FiberCoupler position={[3.5, h, 1.5]} />
+      <Lens position={optics.lens.renderPosition} yaw={optics.lens.yaw} />
+      <FiberCoupler position={optics.fiber.renderPosition} yaw={optics.fiber.yaw} />
 
       <Beam points={beamPoints} />
 
@@ -419,8 +528,14 @@ function OpticalScene({ is2D, m1Angle, setM1Angle, m2Angle, setM2Angle }) {
 
 export default function App() {
   const [is2D, setIs2D] = useState(false)
-  const [m1Angle, setM1Angle] = useState(Math.PI / 4)
-  const [m2Angle, setM2Angle] = useState(Math.PI / 4)
+  const [opticYaws, setOpticYaws] = useState(() => buildInitialOpticYaws(DEFAULT_LEVEL))
+
+  const handleOpticYawChange = useCallback((id, yaw) => {
+    setOpticYaws((current) => ({
+      ...current,
+      [id]: yaw,
+    }))
+  }, [])
 
   return (
     <div style={{ width: '100%', height: 560, position: 'relative' }}>
@@ -437,10 +552,9 @@ export default function App() {
       >
         <OpticalScene
           is2D={is2D}
-          m1Angle={m1Angle}
-          setM1Angle={setM1Angle}
-          m2Angle={m2Angle}
-          setM2Angle={setM2Angle}
+          level={DEFAULT_LEVEL}
+          opticYaws={opticYaws}
+          onOpticYawChange={handleOpticYawChange}
         />
       </Canvas>
       <button
