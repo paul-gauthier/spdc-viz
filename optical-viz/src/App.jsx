@@ -3,31 +3,6 @@ import * as THREE from 'three'
 import { Canvas, useFrame } from '@react-three/fiber'
 import { OrbitControls, Html, Line, Environment } from '@react-three/drei'
 
-function pointOnPolyline(points, t) {
-  const segLengths = []
-  let total = 0
-
-  for (let i = 0; i < points.length - 1; i++) {
-    const len = points[i].distanceTo(points[i + 1])
-    segLengths.push(len)
-    total += len
-  }
-
-  let d = THREE.MathUtils.clamp(t, 0, 1) * total
-
-  for (let i = 0; i < segLengths.length; i++) {
-    if (d <= segLengths[i]) {
-      return new THREE.Vector3().lerpVectors(
-        points[i],
-        points[i + 1],
-        d / segLengths[i]
-      )
-    }
-    d -= segLengths[i]
-  }
-
-  return points[points.length - 1].clone()
-}
 
 const POST_HEIGHT = 2
 const MIRROR_RADIUS = 0.5
@@ -338,12 +313,12 @@ function InteractiveMirror({ position, angle, onAngleChange, name, onDragStart, 
 /* ───── animated beam ───── */
 
 function Beam({ points }) {
-  const pulseRef = useRef()
+  const flowRef = useRef()
 
-  useFrame((state) => {
-    const u = (state.clock.getElapsedTime() * 0.18) % 1
-    const p = pointOnPolyline(points, u)
-    if (pulseRef.current) pulseRef.current.position.copy(p)
+  useFrame((_state, delta) => {
+    if (flowRef.current?.material) {
+      flowRef.current.material.dashOffset -= delta * 2
+    }
   })
 
   const linePoints = useMemo(() => points.map((p) => [p.x, p.y, p.z]), [points])
@@ -355,12 +330,20 @@ function Beam({ points }) {
         color="#ff2a2a"
         lineWidth={3}
         transparent
-        opacity={0.9}
+        opacity={0.35}
       />
-      <mesh ref={pulseRef} castShadow>
-        <sphereGeometry args={[0.045, 24, 24]} />
-        <meshBasicMaterial color="#ff8080" />
-      </mesh>
+      <Line
+        ref={flowRef}
+        points={linePoints}
+        color="#ff8080"
+        lineWidth={2}
+        transparent
+        opacity={0.95}
+        dashed
+        dashScale={12}
+        dashSize={0.6}
+        gapSize={0.35}
+      />
     </group>
   )
 }
