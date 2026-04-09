@@ -181,7 +181,7 @@ function Fit3DCamera({ board, enabled, controlsRef, savedView, sceneBounds }) {
     const horizontalFov = 2 * Math.atan(Math.tan(verticalFov / 2) * (size.width / size.height))
     const fitHeightDistance = projectedHalfHeight / Math.tan(verticalFov / 2)
     const fitWidthDistance = projectedHalfWidth / Math.tan(horizontalFov / 2)
-    const distance = (Math.max(fitHeightDistance, fitWidthDistance) + projectedHalfDepth) * 1.02
+    const distance = (Math.max(fitHeightDistance, fitWidthDistance) + projectedHalfDepth) * 1.1
     const position = target.clone().add(viewDirection.multiplyScalar(distance))
 
     camera.position.copy(position)
@@ -311,6 +311,15 @@ export function OpticalScene({
     return bounds
   }, [beamResult.effects, board, optics])
 
+  const distanceLimits = useMemo(() => {
+    const sphere = sceneBounds.getBoundingSphere(new THREE.Sphere())
+
+    return {
+      minDistance: Math.max(4, sphere.radius * 0.8),
+      maxDistance: Math.max(30, sphere.radius * 6),
+    }
+  }, [sceneBounds])
+
   return (
     <>
       <ambientLight intensity={0.7} />
@@ -373,8 +382,8 @@ export function OpticalScene({
         enableZoom={!is2D}
         target={[0, POST_HEIGHT / 2, 0]}
         enablePan
-        minDistance={4}
-        maxDistance={14}
+        minDistance={distanceLimits.minDistance}
+        maxDistance={distanceLimits.maxDistance}
         minZoom={20}
         maxZoom={200}
         minPolarAngle={is2D ? 0 : 0.15}
