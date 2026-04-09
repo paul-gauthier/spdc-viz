@@ -102,6 +102,10 @@ function buildInitialOpticYaws(level) {
   return Object.fromEntries(level.optics.map((optic) => [optic.id, optic.yaw ?? 0]))
 }
 
+function clamp01(value) {
+  return Math.min(1, Math.max(0, value))
+}
+
 function reflectDir(incident, normal) {
   const d = incident.clone().normalize()
   const n = normal.clone().normalize()
@@ -135,14 +139,14 @@ function intersectRayWithFiberFace(origin, dir, center, yaw) {
   if (Math.abs(denom) < 1e-6) return null
 
   const faceConfigs = [
-    { offset: -FIBER_LENGTH / 2, radius: FIBER_NEGATIVE_X_FACE_RADIUS },
-    { offset: FIBER_LENGTH / 2, radius: FIBER_POSITIVE_X_FACE_RADIUS },
+    { offset: -FIBER_LENGTH / 2, radius: FIBER_NEGATIVE_X_FACE_RADIUS, inwardAxis: axis.clone() },
+    { offset: FIBER_LENGTH / 2, radius: FIBER_POSITIVE_X_FACE_RADIUS, inwardAxis: axis.clone().multiplyScalar(-1) },
   ]
 
   let closestHit = null
   let closestDistance = Infinity
 
-  for (const { offset, radius } of faceConfigs) {
+  for (const { offset, radius, inwardAxis } of faceConfigs) {
     const faceCenter = center.clone().add(axis.clone().multiplyScalar(offset))
     const t = new THREE.Vector3().subVectors(faceCenter, origin).dot(axis) / denom
     if (t <= 0) continue
@@ -150,11 +154,12 @@ function intersectRayWithFiberFace(origin, dir, center, yaw) {
     const point = origin.clone().add(dir.clone().multiplyScalar(t))
     const radialOffset = new THREE.Vector3().subVectors(point, faceCenter)
     radialOffset.sub(axis.clone().multiplyScalar(radialOffset.dot(axis)))
+    const radialDistance = radialOffset.length()
 
-    if (radialOffset.length() > radius) continue
+    if (radialDistance > radius) continue
 
     if (t < closestDistance) {
-      closestHit = { point }
+      closestHit = { point, faceRadius: radius, inwardAxis, radialDistance }
       closestDistance = t
     }
   }
@@ -162,8 +167,20 @@ function intersectRayWithFiberFace(origin, dir, center, yaw) {
   return closestHit
 }
 
+function computeFiberCoupling(hit, incidentDir) {
+  const radialRatio = hit.faceRadius > 0 ? hit.radialDistance / hit.faceRadius : 1
+  const radialScore = clamp01(1 - radialRatio * radialRatio)
+  const angularScore = Math.pow(
+    clamp01(incidentDir.clone().normalize().dot(hit.inwardAxis.clone().normalize())),
+    4,
+  )
+
+  return clamp01(radialScore * angularScore)
+}
+
 function computeBeamPath({ origin, direction, elements, tailLength = 8, maxBounces = 8 }) {
   const path = [origin.clone()]
+  const couplingByOpticId = {}
 
   let rayOrigin = origin.clone()
   let rayDirection = direction.clone().normalize()
@@ -180,7 +197,7 @@ function computeBeamPath({ origin, direction, elements, tailLength = 8, maxBounc
         if (mirrorHit) hit = { ...mirrorHit, type: 'mirror' }
       } else if (element.type === 'fiber') {
         const fiberHit = intersectRayWithFiberFace(rayOrigin, rayDirection, element.position, element.yaw)
-        if (fiberHit) hit = { ...fiberHit, type: 'fiber' }
+        if (fiberHit) hit = { ...fiberHit, type: 'fiber', id: element.id }
       }
 
       if (!hit) continue
@@ -196,14 +213,17 @@ function computeBeamPath({ origin, direction, elements, tailLength = 8, maxBounc
 
     path.push(closestHit.point.clone())
 
-    if (closestHit.type === 'fiber') return path
+    if (closestHit.type === 'fiber') {
+      couplingByOpticId[closestHit.id] = computeFiberCoupling(closestHit, rayDirection)
+      return { path, couplingByOpticId }
+    }
 
     rayDirection = reflectDir(rayDirection, closestHit.normal)
     rayOrigin = closestHit.point.clone().add(rayDirection.clone().multiplyScalar(BEAM_TRACE_EPSILON))
   }
 
   path.push(path[path.length - 1].clone().add(rayDirection.clone().multiplyScalar(tailLength)))
-  return path
+  return { path, couplingByOpticId }
 }
 
 /* ───── small shared components ───── */
@@ -307,12 +327,12 @@ function Lens({ position, yaw = 0 }) {
   )
 }
 
-function FiberCoupler({ position, yaw = 0 }) {
+function FiberCoupler({ position, yaw = 0, coupling = 0 }) {
   return (
     <OpticMount
       position={position}
       yaw={yaw}
-      label="Fiber"
+      label={`Fiber ${coupling.toFixed(2)}`}
       geometryArgs={[0.25, 0.15, 1, 32]}
       opticMaterial={<meshStandardMaterial color="#555" metalness={0.5} roughness={0.5} />}
     />
@@ -475,7 +495,7 @@ function InteractiveMirror({ position, yaw, onYawChange, name, onDragStart, onDr
   )
 }
 
-function Optic({ optic, onOpticYawChange, onDragStart, onDragEnd }) {
+function Optic({ optic, coupling = 0, onOpticYawChange, onDragStart, onDragEnd }) {
   switch (optic.type) {
     case 'laser':
       return <Laser position={optic.renderPosition} yaw={optic.yaw} />
@@ -493,7 +513,7 @@ function Optic({ optic, onOpticYawChange, onDragStart, onDragEnd }) {
     case 'lens':
       return <Lens position={optic.renderPosition} yaw={optic.yaw} />
     case 'fiber':
-      return <FiberCoupler position={optic.renderPosition} yaw={optic.yaw} />
+      return <FiberCoupler position={optic.renderPosition} yaw={optic.yaw} coupling={coupling} />
     default:
       return null
   }
@@ -543,7 +563,7 @@ function OpticalScene({ is2D, level, opticYaws, onOpticYawChange }) {
   const resolvedLevel = useMemo(() => resolveLevel(level, opticYaws), [level, opticYaws])
   const { board, optics } = resolvedLevel
 
-  const beamPoints = useMemo(() => {
+  const beamResult = useMemo(() => {
     const source = resolvedLevel.opticsById[resolvedLevel.beam.source]
     const elements = resolvedLevel.optics.filter((optic) => optic.type === 'mirror' || optic.type === 'fiber')
 
@@ -569,13 +589,14 @@ function OpticalScene({ is2D, level, opticYaws, onOpticYawChange }) {
         <Optic
           key={optic.id}
           optic={optic}
+          coupling={beamResult.couplingByOpticId[optic.id] ?? 0}
           onOpticYawChange={onOpticYawChange}
           onDragStart={() => setIsDragging(true)}
           onDragEnd={() => setIsDragging(false)}
         />
       ))}
 
-      <Beam points={beamPoints} />
+      <Beam points={beamResult.path} />
 
       <OrbitControls
         makeDefault
