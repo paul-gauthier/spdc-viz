@@ -1,7 +1,7 @@
 import React, { useMemo, useRef } from 'react'
 import * as THREE from 'three'
 import { Canvas, useFrame } from '@react-three/fiber'
-import { OrbitControls, Html, Line } from '@react-three/drei'
+import { OrbitControls, Html, Line, Environment } from '@react-three/drei'
 
 function pointOnPolyline(points, t) {
   const segLengths = []
@@ -108,9 +108,9 @@ function Mirror({ position, rotationY = 0, name }) {
   return (
     <OpticMount position={position} rotationY={rotationY} label={name} opticMaterial={
       <>
-        <meshStandardMaterial attach="material-0" color="#666" metalness={0.7} roughness={0.35} />
-        <meshStandardMaterial attach="material-1" color="#dfe6ee" metalness={0.7} roughness={0.1} />
-        <meshStandardMaterial attach="material-2" color="#dfe6ee" metalness={0.7} roughness={0.1} />
+        <meshStandardMaterial attach="material-0" color="#888" metalness={0.8} roughness={0.3} />
+        <meshStandardMaterial attach="material-1" color="#f0f2f5" metalness={1} roughness={0.02} envMapIntensity={2} />
+        <meshStandardMaterial attach="material-2" color="#f0f2f5" metalness={1} roughness={0.02} envMapIntensity={2} />
       </>
     } />
   )
@@ -197,6 +197,7 @@ function OpticalScene() {
     <>
       <ambientLight intensity={0.7} />
       <directionalLight position={[4, 8, 4]} intensity={1.2} castShadow />
+      <Environment preset="studio" />
 
       <Table />
       <BreadboardHoles />
