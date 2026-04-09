@@ -86,28 +86,79 @@ function SpdcConeEffect({ effect }) {
   const { axis, color = '#ef4444', length = 4, openingAngle = 0, opacity = 0.18, origin } = effect
   const radius = length * Math.tan(openingAngle)
 
-  const { position, quaternion } = useMemo(() => {
+  const { position, quaternion, guideLines } = useMemo(() => {
     const direction = axis.clone().normalize()
+    const guideAngles = [0, Math.PI / 2, Math.PI, (3 * Math.PI) / 2]
 
     return {
       position: origin.clone().add(direction.clone().multiplyScalar(length / 2)),
       quaternion: new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), direction),
+      guideLines: guideAngles.map((angle) => [
+        [0, -length / 2, 0],
+        [Math.cos(angle) * radius, length / 2, Math.sin(angle) * radius],
+      ]),
     }
-  }, [axis, length, origin])
+  }, [axis, length, origin, radius])
 
   if (!(length > 0) || !(radius > 0)) return null
 
+  const fillOpacity = Math.max(opacity, 0.14)
+  const rimOpacity = Math.min(0.95, fillOpacity + 0.6)
+  const capOpacity = Math.min(0.22, fillOpacity * 0.7 + 0.04)
+  const rimInnerRadius = Math.max(0, radius - Math.min(0.05, Math.max(radius * 0.12, 0.015)))
+  const guideOpacity = Math.min(0.8, fillOpacity + 0.45)
+
   return (
-    <mesh position={[position.x, position.y, position.z]} quaternion={quaternion}>
-      <cylinderGeometry args={[radius, 0, length, 48, 1, true]} />
-      <meshStandardMaterial
-        color={color}
-        transparent
-        opacity={opacity}
-        depthWrite={false}
-        side={THREE.DoubleSide}
-      />
-    </mesh>
+    <group position={[position.x, position.y, position.z]} quaternion={quaternion}>
+      <mesh renderOrder={12}>
+        <cylinderGeometry args={[radius, 0, length, 48, 1, true]} />
+        <meshBasicMaterial
+          color={color}
+          transparent
+          opacity={fillOpacity}
+          depthWrite={false}
+          side={THREE.DoubleSide}
+          toneMapped={false}
+        />
+      </mesh>
+
+      <mesh position={[0, length / 2, 0]} rotation={[Math.PI / 2, 0, 0]} renderOrder={13}>
+        <ringGeometry args={[rimInnerRadius, radius, 48]} />
+        <meshBasicMaterial
+          color={color}
+          transparent
+          opacity={rimOpacity}
+          depthWrite={false}
+          side={THREE.DoubleSide}
+          toneMapped={false}
+        />
+      </mesh>
+
+      <mesh position={[0, length / 2, 0]} rotation={[Math.PI / 2, 0, 0]} renderOrder={12}>
+        <circleGeometry args={[radius, 48]} />
+        <meshBasicMaterial
+          color={color}
+          transparent
+          opacity={capOpacity}
+          depthWrite={false}
+          side={THREE.DoubleSide}
+          toneMapped={false}
+        />
+      </mesh>
+
+      {guideLines.map((points, index) => (
+        <Line
+          key={index}
+          points={points}
+          color={color}
+          lineWidth={2}
+          transparent
+          opacity={guideOpacity}
+          depthWrite={false}
+          renderOrder={13}
+        />
+      ))}
+    </group>
   )
 }
 
