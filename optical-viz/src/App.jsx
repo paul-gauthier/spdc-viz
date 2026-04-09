@@ -15,36 +15,41 @@ const DEFAULT_LEVEL = {
     holesY: 6,
     pitch: 1,
   },
-  optics: {
-    laser: {
+  optics: [
+    {
+      id: 'laser',
       type: 'laser',
       hole: [0, 1],
       yaw: 0,
       beamExitOffset: [0.25, 0, 0],
     },
-    mirror1: {
+    {
+      id: 'mirror1',
       type: 'mirror',
       hole: [3, 1],
       yaw: Math.PI / 4,
       label: 'Mirror 1',
     },
-    mirror2: {
+    {
+      id: 'mirror2',
       type: 'mirror',
       hole: [3, 4],
       yaw: Math.PI / 4,
       label: 'Mirror 2',
     },
-    lens: {
+    {
+      id: 'lens',
       type: 'lens',
       hole: [6, 4],
       yaw: 0,
     },
-    fiber: {
+    {
+      id: 'fiber',
       type: 'fiber',
       hole: [8, 4],
       yaw: 0,
     },
-  },
+  ],
   beam: {
     source: 'laser',
     maxBounces: 8,
@@ -77,31 +82,27 @@ function localOffsetToWorld(offset = [0, 0, 0], yaw = 0) {
 }
 
 function resolveLevel(level, opticYaws = {}) {
-  const optics = Object.fromEntries(
-    Object.entries(level.optics).map(([id, optic]) => {
-      const yaw = opticYaws[id] ?? optic.yaw ?? 0
-      const position = holeToWorld(level.board, optic.hole)
-      const beamPosition = position.clone().add(localOffsetToWorld(optic.beamExitOffset, yaw))
+  const optics = level.optics.map((optic) => {
+    const yaw = opticYaws[optic.id] ?? optic.yaw ?? 0
+    const position = holeToWorld(level.board, optic.hole)
+    const beamPosition = position.clone().add(localOffsetToWorld(optic.beamExitOffset, yaw))
 
-      return [
-        id,
-        {
-          ...optic,
-          id,
-          yaw,
-          position,
-          renderPosition: position.toArray(),
-          beamPosition,
-        },
-      ]
-    }),
-  )
+    return {
+      ...optic,
+      yaw,
+      position,
+      renderPosition: position.toArray(),
+      beamPosition,
+    }
+  })
 
-  return { ...level, optics }
+  const opticsById = Object.fromEntries(optics.map((optic) => [optic.id, optic]))
+
+  return { ...level, optics, opticsById }
 }
 
 function buildInitialOpticYaws(level) {
-  return Object.fromEntries(Object.entries(level.optics).map(([id, optic]) => [id, optic.yaw ?? 0]))
+  return Object.fromEntries(level.optics.map((optic) => [optic.id, optic.yaw ?? 0]))
 }
 
 function reflectDir(incident, normal) {
@@ -433,6 +434,30 @@ function InteractiveMirror({ position, yaw, onYawChange, name, onDragStart, onDr
   )
 }
 
+function Optic({ optic, onOpticYawChange, onDragStart, onDragEnd }) {
+  switch (optic.type) {
+    case 'laser':
+      return <Laser position={optic.renderPosition} yaw={optic.yaw} />
+    case 'mirror':
+      return (
+        <InteractiveMirror
+          position={optic.renderPosition}
+          yaw={optic.yaw}
+          onYawChange={(yaw) => onOpticYawChange(optic.id, yaw)}
+          name={optic.label ?? optic.id}
+          onDragStart={onDragStart}
+          onDragEnd={onDragEnd}
+        />
+      )
+    case 'lens':
+      return <Lens position={optic.renderPosition} yaw={optic.yaw} />
+    case 'fiber':
+      return <FiberCoupler position={optic.renderPosition} yaw={optic.yaw} />
+    default:
+      return null
+  }
+}
+
 /* ───── animated beam ───── */
 
 function Beam({ points }) {
@@ -478,8 +503,8 @@ function OpticalScene({ is2D, level, opticYaws, onOpticYawChange }) {
   const { board, optics } = resolvedLevel
 
   const beamPoints = useMemo(() => {
-    const source = resolvedLevel.optics[resolvedLevel.beam.source]
-    const elements = Object.values(resolvedLevel.optics).filter((optic) => optic.type === 'mirror')
+    const source = resolvedLevel.opticsById[resolvedLevel.beam.source]
+    const elements = resolvedLevel.optics.filter((optic) => optic.type === 'mirror')
 
     return computeBeamPath({
       origin: source.beamPosition,
@@ -499,27 +524,15 @@ function OpticalScene({ is2D, level, opticYaws, onOpticYawChange }) {
       <Table board={board} />
       <BreadboardHoles board={board} />
 
-      <Laser position={optics.laser.renderPosition} yaw={optics.laser.yaw} />
-
-      <InteractiveMirror
-        position={optics.mirror1.renderPosition}
-        yaw={optics.mirror1.yaw}
-        onYawChange={(yaw) => onOpticYawChange('mirror1', yaw)}
-        name={optics.mirror1.label ?? 'Mirror 1'}
-        onDragStart={() => setIsDragging(true)}
-        onDragEnd={() => setIsDragging(false)}
-      />
-      <InteractiveMirror
-        position={optics.mirror2.renderPosition}
-        yaw={optics.mirror2.yaw}
-        onYawChange={(yaw) => onOpticYawChange('mirror2', yaw)}
-        name={optics.mirror2.label ?? 'Mirror 2'}
-        onDragStart={() => setIsDragging(true)}
-        onDragEnd={() => setIsDragging(false)}
-      />
-
-      <Lens position={optics.lens.renderPosition} yaw={optics.lens.yaw} />
-      <FiberCoupler position={optics.fiber.renderPosition} yaw={optics.fiber.yaw} />
+      {optics.map((optic) => (
+        <Optic
+          key={optic.id}
+          optic={optic}
+          onOpticYawChange={onOpticYawChange}
+          onDragStart={() => setIsDragging(true)}
+          onDragEnd={() => setIsDragging(false)}
+        />
+      ))}
 
       <Beam points={beamPoints} />
 
