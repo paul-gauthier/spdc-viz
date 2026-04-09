@@ -348,9 +348,7 @@ function Beam({ points }) {
   )
 }
 
-function OpticalScene({ is2D }) {
-  const [m1Angle, setM1Angle] = useState(Math.PI / 4)
-  const [m2Angle, setM2Angle] = useState(Math.PI / 4)
+function OpticalScene({ is2D, m1Angle, setM1Angle, m2Angle, setM2Angle }) {
   const [isDragging, setIsDragging] = useState(false)
 
   const h = POST_HEIGHT
@@ -421,6 +419,8 @@ function OpticalScene({ is2D }) {
 
 export default function App() {
   const [is2D, setIs2D] = useState(false)
+  const [m1Angle, setM1Angle] = useState(Math.PI / 4)
+  const [m2Angle, setM2Angle] = useState(Math.PI / 4)
 
   return (
     <div style={{ width: '100%', height: 560, position: 'relative' }}>
@@ -435,7 +435,13 @@ export default function App() {
         }
         dpr={[1, 2]}
       >
-        <OpticalScene is2D={is2D} />
+        <OpticalScene
+          is2D={is2D}
+          m1Angle={m1Angle}
+          setM1Angle={setM1Angle}
+          m2Angle={m2Angle}
+          setM2Angle={setM2Angle}
+        />
       </Canvas>
       <button
         onClick={() => setIs2D((v) => !v)}
