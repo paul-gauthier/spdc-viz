@@ -139,6 +139,26 @@ function FiberFill({ power }) {
   )
 }
 
+function FiberTailCoil() {
+  const color = '#facc15'
+
+  return (
+    <group position={[FIBER_LENGTH / 2 + 0.14, -0.16, 0]}>
+      <mesh position={[-0.09, 0.15, 0]} rotation={[0, 0, Math.PI / 2]} castShadow>
+        <cylinderGeometry args={[0.018, 0.018, 0.22, 16]} />
+        <meshStandardMaterial color={color} metalness={0.05} roughness={0.72} />
+      </mesh>
+
+      {[0, 0.055, 0.11].map((x) => (
+        <mesh key={`${x}`} position={[x, 0, 0]} rotation={[0, Math.PI / 2, 0]} castShadow>
+          <torusGeometry args={[0.11, 0.018, 12, 32]} />
+          <meshStandardMaterial color={color} metalness={0.05} roughness={0.72} />
+        </mesh>
+      ))}
+    </group>
+  )
+}
+
 export function FiberBody({ coupling = 0 }) {
   const power = clamp01(coupling)
 
