@@ -87,8 +87,8 @@ export const OPTIC_TYPES = {
       coneOpacity: 0.18,
       signalBaseColor: '#ef4444',
       signalFlowColor: '#fca5a5',
-      idlerBaseColor: '#f97316',
-      idlerFlowColor: '#fdba74',
+      idlerBaseColor: '#ef4444',
+      idlerFlowColor: '#fca5a5',
     },
     render: {
       Body: SpdcBody,
