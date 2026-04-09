@@ -121,7 +121,7 @@ function Fit2DCamera({ board, enabled }) {
   return null
 }
 
-function Fit3DCamera({ board, enabled, controlsRef, savedView }) {
+function Fit3DCamera({ board, enabled, controlsRef, savedView, sceneBounds }) {
   const { camera, size } = useThree()
 
   useEffect(() => {
@@ -142,18 +142,23 @@ function Fit3DCamera({ board, enabled, controlsRef, savedView }) {
       return
     }
 
-    const { width, depth } = getBoardSize(board)
-    const target = new THREE.Vector3(0, POST_HEIGHT / 2, 0)
+    let target
+    let halfExtents
+
+    if (sceneBounds && !sceneBounds.isEmpty()) {
+      target = sceneBounds.getCenter(new THREE.Vector3())
+      halfExtents = sceneBounds.getSize(new THREE.Vector3()).multiplyScalar(0.5)
+    } else {
+      const { width, depth } = getBoardSize(board)
+      target = new THREE.Vector3(0, POST_HEIGHT / 2, 0)
+      halfExtents = new THREE.Vector3(width / 2, POST_HEIGHT / 2, depth / 2)
+    }
+
     const viewDirection = new THREE.Vector3(0, 0.72, 0.9).normalize()
     const forward = viewDirection.clone().multiplyScalar(-1)
     const worldUp = new THREE.Vector3(0, 1, 0)
     const right = forward.clone().cross(worldUp).normalize()
     const up = right.clone().cross(forward).normalize()
-    const halfExtents = new THREE.Vector3(
-      width / 2 + board.pitch,
-      POST_HEIGHT / 2 + board.pitch * 1.5,
-      depth / 2 + board.pitch,
-    )
 
     const projectedHalfWidth =
       halfExtents.x * Math.abs(right.x) +
@@ -172,7 +177,7 @@ function Fit3DCamera({ board, enabled, controlsRef, savedView }) {
     const horizontalFov = 2 * Math.atan(Math.tan(verticalFov / 2) * (size.width / size.height))
     const fitHeightDistance = projectedHalfHeight / Math.tan(verticalFov / 2)
     const fitWidthDistance = projectedHalfWidth / Math.tan(horizontalFov / 2)
-    const distance = (Math.max(fitHeightDistance, fitWidthDistance) + projectedHalfDepth) * 1.05
+    const distance = (Math.max(fitHeightDistance, fitWidthDistance) + projectedHalfDepth) * 1.02
     const position = target.clone().add(viewDirection.multiplyScalar(distance))
 
     camera.position.copy(position)
@@ -187,7 +192,7 @@ function Fit3DCamera({ board, enabled, controlsRef, savedView }) {
     }
 
     camera.lookAt(target)
-  }, [board, camera, controlsRef, enabled, savedView, size.height, size.width])
+  }, [board, camera, controlsRef, enabled, savedView, sceneBounds, size.height, size.width])
 
   return null
 }
@@ -256,6 +261,55 @@ export function OpticalScene({
     })
   }, [beams, optics, opticsById])
 
+  const sceneBounds = useMemo(() => {
+    const bounds = new THREE.Box3()
+
+    optics.forEach((optic) => {
+      const opticType = getOpticType(optic.type)
+      const fitRadius = Math.max(opticType.render.opticRadius, opticType.interaction?.rotatable ? 0.65 : 0)
+
+      bounds.expandByPoint(new THREE.Vector3(optic.position.x - fitRadius, 0, optic.position.z - fitRadius))
+      bounds.expandByPoint(
+        new THREE.Vector3(
+          optic.position.x + fitRadius,
+          POST_HEIGHT + opticType.render.opticRadius,
+          optic.position.z + fitRadius,
+        ),
+      )
+    })
+
+    beamResult.beams.forEach((beam) => {
+      beam.path.forEach((point) => {
+        bounds.expandByPoint(point)
+      })
+    })
+
+    beamResult.effects
+      .filter((effect) => effect.type === 'spdcCone')
+      .forEach((effect) => {
+        const direction = effect.axis.clone().normalize()
+        const length = effect.length ?? 0
+        const end = effect.origin.clone().add(direction.multiplyScalar(length))
+        const radius = length * Math.tan(effect.openingAngle ?? 0)
+
+        bounds.expandByPoint(effect.origin)
+        bounds.expandByPoint(new THREE.Vector3(end.x - radius, end.y - radius, end.z - radius))
+        bounds.expandByPoint(new THREE.Vector3(end.x + radius, end.y + radius, end.z + radius))
+      })
+
+    if (bounds.isEmpty()) {
+      const { width, depth } = getBoardSize(board)
+      bounds.setFromCenterAndSize(
+        new THREE.Vector3(0, POST_HEIGHT / 2, 0),
+        new THREE.Vector3(width, POST_HEIGHT, depth),
+      )
+    }
+
+    bounds.expandByScalar(board.pitch * 0.35)
+
+    return bounds
+  }, [beamResult.beams, beamResult.effects, board, optics])
+
   return (
     <>
       <ambientLight intensity={0.7} />
@@ -263,7 +317,13 @@ export function OpticalScene({
       <Environment preset="city" />
 
       <Fit2DCamera board={board} enabled={is2D} />
-      <Fit3DCamera board={board} enabled={!is2D} controlsRef={controlsRef} savedView={saved3DView} />
+      <Fit3DCamera
+        board={board}
+        enabled={!is2D}
+        controlsRef={controlsRef}
+        savedView={saved3DView}
+        sceneBounds={sceneBounds}
+      />
       <Table board={board} />
       <BreadboardHoles board={board} />
 
