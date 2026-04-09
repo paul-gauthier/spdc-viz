@@ -230,7 +230,17 @@ function computeBeamPath({ origin, direction, elements, tailLength = 8, maxBounc
 
 function Label({ children, position }) {
   return (
-    <Html position={position} occlude distanceFactor={10} style={{ pointerEvents: 'none' }}>
+    <Html
+      position={position}
+      occlude
+      distanceFactor={10}
+      style={{
+        pointerEvents: 'none',
+        userSelect: 'none',
+        WebkitUserSelect: 'none',
+        WebkitTouchCallout: 'none',
+      }}
+    >
       <div
         style={{
           padding: '4px 8px',
@@ -241,6 +251,9 @@ function Label({ children, position }) {
           whiteSpace: 'nowrap',
           transform: 'translate(10px, -110%)',
           pointerEvents: 'none',
+          userSelect: 'none',
+          WebkitUserSelect: 'none',
+          WebkitTouchCallout: 'none',
         }}
       >
         {children}
@@ -426,11 +439,15 @@ function RotatableOpticMount({
     (e) => {
       const startPointerAngle = getAngleFromRay(e.ray)
       if (startPointerAngle === null) return
+      e.sourceEvent?.preventDefault?.()
       e.stopPropagation()
       e.target.setPointerCapture(e.pointerId)
       setDragging(true)
       dragRef.current = { startPointerAngle, startYaw: yaw }
       document.body.style.cursor = 'grabbing'
+      document.body.style.userSelect = 'none'
+      document.body.style.webkitUserSelect = 'none'
+      document.body.style.webkitTouchCallout = 'none'
       onDragStart?.()
     },
     [getAngleFromRay, onDragStart, yaw],
@@ -441,6 +458,7 @@ function RotatableOpticMount({
       if (!dragRef.current) return
       const pointerAngle = getAngleFromRay(e.ray)
       if (pointerAngle === null) return
+      e.sourceEvent?.preventDefault?.()
       e.stopPropagation()
       const delta = pointerAngle - dragRef.current.startPointerAngle
       onYawChange(dragRef.current.startYaw - delta)
@@ -451,11 +469,15 @@ function RotatableOpticMount({
   const endDrag = useCallback(
     (e) => {
       if (!dragRef.current && !dragging) return
+      e?.sourceEvent?.preventDefault?.()
       e?.stopPropagation?.()
       e?.target?.releasePointerCapture?.(e.pointerId)
       setDragging(false)
       dragRef.current = null
       document.body.style.cursor = 'auto'
+      document.body.style.userSelect = ''
+      document.body.style.webkitUserSelect = ''
+      document.body.style.webkitTouchCallout = ''
       onDragEnd?.()
     },
     [dragging, onDragEnd],
@@ -712,7 +734,19 @@ export default function App() {
   }, [])
 
   return (
-    <div style={{ width: '100%', height: 560, position: 'relative' }}>
+    <div
+      onContextMenu={(e) => e.preventDefault()}
+      style={{
+        width: '100%',
+        height: 560,
+        position: 'relative',
+        touchAction: 'none',
+        userSelect: 'none',
+        WebkitUserSelect: 'none',
+        WebkitTouchCallout: 'none',
+        WebkitTapHighlightColor: 'transparent',
+      }}
+    >
       <Canvas
         key={is2D ? '2d' : '3d'}
         shadows
@@ -723,6 +757,13 @@ export default function App() {
             : { position: [0, 6.5, 5.5], fov: 42 }
         }
         dpr={[1, 2]}
+        style={{
+          touchAction: 'none',
+          userSelect: 'none',
+          WebkitUserSelect: 'none',
+          WebkitTouchCallout: 'none',
+          WebkitTapHighlightColor: 'transparent',
+        }}
       >
         <OpticalScene
           is2D={is2D}
