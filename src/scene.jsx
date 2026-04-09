@@ -201,7 +201,7 @@ function Optic({ optic, opticState = {}, onOpticYawChange, onDragStart, onDragEn
   )
 }
 
-export function OpticalScene({ is2D, level, opticYaws, onOpticYawChange, showSpdcCones = true }) {
+export function OpticalScene({ is2D, level, opticYaws, onOpticYawChange }) {
   const [isDragging, setIsDragging] = useState(false)
   const controlsRef = useRef(null)
 
@@ -249,7 +249,7 @@ export function OpticalScene({ is2D, level, opticYaws, onOpticYawChange, showSpd
         />
       ))}
 
-      {!is2D && showSpdcCones
+      {!is2D
         ? beamResult.effects
             .filter((effect) => effect.type === 'spdcCone')
             .map((effect, index) => (
