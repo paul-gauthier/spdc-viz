@@ -122,7 +122,7 @@ function Lens({ position }) {
 
 function FiberCoupler({ position }) {
   return (
-    <OpticMount position={position} label="Fiber" geometryArgs={[0.15, 0.15, 1, 32]} opticMaterial={
+    <OpticMount position={position} label="Fiber" geometryArgs={[0.25, 0.15, 1, 32]} opticMaterial={
       <meshStandardMaterial color="#555" metalness={0.5} roughness={0.5} />
     } />
   )
