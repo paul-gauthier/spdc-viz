@@ -149,6 +149,7 @@ export function FiberBody({ coupling = 0 }) {
         <meshStandardMaterial color="#555" metalness={0.5} roughness={0.5} />
       </mesh>
       <FiberFill power={power} />
+      <FiberTailCoil />
     </>
   )
 }
