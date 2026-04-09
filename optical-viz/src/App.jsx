@@ -86,43 +86,39 @@ function Laser({ position }) {
   )
 }
 
-function Mirror({ position, rotationY = 0, name }) {
+function OpticMount({ position, rotationY = 0, opticMaterial, label }) {
   return (
     <group position={position} rotation={[0, rotationY, 0]}>
       <mesh rotation={[0, 0, Math.PI / 2]} castShadow>
         <cylinderGeometry args={[0.13, 0.13, 0.05, 32]} />
-        <meshStandardMaterial attach="material-0" color="#666" metalness={0.7} roughness={0.35} />
-        <meshStandardMaterial attach="material-1" color="#dfe6ee" metalness={0.7} roughness={0.1} />
-        <meshStandardMaterial attach="material-2" color="#dfe6ee" metalness={0.7} roughness={0.1} />
+        {opticMaterial}
       </mesh>
       <mesh position={[0, -0.18, 0]} castShadow>
         <cylinderGeometry args={[0.04, 0.04, 0.25, 24]} />
         <meshStandardMaterial color="#777" metalness={0.7} roughness={0.35} />
       </mesh>
-      <Label position={[0.18, 0.32, 0.18]}>{name}</Label>
+      <Label position={[0.18, 0.32, 0.18]}>{label}</Label>
     </group>
+  )
+}
+
+function Mirror({ position, rotationY = 0, name }) {
+  return (
+    <OpticMount position={position} rotationY={rotationY} label={name} opticMaterial={
+      <>
+        <meshStandardMaterial attach="material-0" color="#666" metalness={0.7} roughness={0.35} />
+        <meshStandardMaterial attach="material-1" color="#dfe6ee" metalness={0.7} roughness={0.1} />
+        <meshStandardMaterial attach="material-2" color="#dfe6ee" metalness={0.7} roughness={0.1} />
+      </>
+    } />
   )
 }
 
 function Lens({ position }) {
   return (
-    <group position={position}>
-      <mesh rotation={[0, 0, Math.PI / 2]} castShadow>
-        <cylinderGeometry args={[0.13, 0.13, 0.05, 32]} />
-        <meshStandardMaterial
-          color="#88bbff"
-          transparent
-          opacity={0.45}
-          metalness={0.1}
-          roughness={0.05}
-        />
-      </mesh>
-      <mesh position={[0, -0.18, 0]} castShadow>
-        <cylinderGeometry args={[0.04, 0.04, 0.25, 24]} />
-        <meshStandardMaterial color="#777" metalness={0.7} roughness={0.35} />
-      </mesh>
-      <Label position={[0.18, 0.32, 0.18]}>Lens</Label>
-    </group>
+    <OpticMount position={position} label="Lens" opticMaterial={
+      <meshStandardMaterial color="#88bbff" transparent opacity={0.45} metalness={0.1} roughness={0.05} />
+    } />
   )
 }
 
