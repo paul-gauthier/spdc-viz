@@ -149,7 +149,7 @@ function FiberTailCoil() {
         <meshStandardMaterial color={color} metalness={0.05} roughness={0.72} />
       </mesh>
 
-      {[0, 0.08, 0.16].map((x) => (
+      {[0, 0.1].map((x) => (
         <mesh key={`${x}`} position={[x, 0, 0]} rotation={[0, Math.PI / 2, 0]} castShadow>
           <torusGeometry args={[0.11, 0.018, 12, 32]} />
           <meshStandardMaterial color={color} metalness={0.05} roughness={0.72} />
