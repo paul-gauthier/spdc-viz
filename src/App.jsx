@@ -82,7 +82,7 @@ export default function App() {
           top: 12,
           right: 12,
           display: 'flex',
-          flexDirection: 'column',
+          flexDirection: 'row',
           gap: 8,
           zIndex: 10,
         }}
