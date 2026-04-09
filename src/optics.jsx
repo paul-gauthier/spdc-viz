@@ -46,7 +46,7 @@ function Label({ children, position }) {
 export function LaserBody() {
   return (
     <mesh rotation={[0, 0, Math.PI / 2]} castShadow>
-      <cylinderGeometry args={[0.15, 0.25, 1, 32]} />
+      <cylinderGeometry args={[0.25, 0.25, 1, 32]} />
       <meshStandardMaterial color="#666" metalness={0.6} roughness={0.4} />
     </mesh>
   )
