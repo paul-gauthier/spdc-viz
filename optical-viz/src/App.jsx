@@ -109,8 +109,8 @@ function Mirror({ position, rotationY = 0, name }) {
     <OpticMount position={position} rotationY={rotationY} label={name} opticMaterial={
       <>
         <meshStandardMaterial attach="material-0" color="#888" metalness={0.8} roughness={0.3} />
-        <meshStandardMaterial attach="material-1" color="#f0f2f5" metalness={1} roughness={0.02} envMapIntensity={2} />
-        <meshStandardMaterial attach="material-2" color="#f0f2f5" metalness={1} roughness={0.02} envMapIntensity={2} />
+        <meshStandardMaterial attach="material-1" color="#f0f2f5" metalness={1} roughness={0.02} envMapIntensity={3} />
+        <meshStandardMaterial attach="material-2" color="#f0f2f5" metalness={1} roughness={0.02} envMapIntensity={3} />
       </>
     } />
   )
@@ -197,7 +197,7 @@ function OpticalScene() {
     <>
       <ambientLight intensity={0.7} />
       <directionalLight position={[4, 8, 4]} intensity={1.2} castShadow />
-      <Environment preset="studio" />
+      <Environment preset="city" />
 
       <Table />
       <BreadboardHoles />
