@@ -47,7 +47,7 @@ export function LaserBody() {
   return (
     <mesh rotation={[0, 0, Math.PI / 2]} castShadow>
       <cylinderGeometry args={[0.25, 0.25, 1, 32]} />
-      <meshStandardMaterial color="#666" metalness={0.6} roughness={0.4} />
+      <meshStandardMaterial color="#c9ced6" metalness={0.9} roughness={0.22} />
     </mesh>
   )
 }
