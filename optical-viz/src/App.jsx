@@ -307,7 +307,7 @@ function Beam({ points }) {
   )
 }
 
-function OpticalScene() {
+function OpticalScene({ is2D }) {
   const [m1Angle, setM1Angle] = useState(Math.PI / 4)
   const [m2Angle, setM2Angle] = useState(Math.PI / 4)
   const [isDragging, setIsDragging] = useState(false)
@@ -364,23 +364,55 @@ function OpticalScene() {
       <OrbitControls
         makeDefault
         enabled={!isDragging}
-        target={[0, 0.15, 0]}
+        enableRotate={!is2D}
+        target={[0, 0, 0]}
         enablePan
         minDistance={4}
         maxDistance={14}
-        minPolarAngle={0.15}
-        maxPolarAngle={Math.PI / 2.05}
+        minZoom={20}
+        maxZoom={200}
+        minPolarAngle={is2D ? 0 : 0.15}
+        maxPolarAngle={is2D ? 0 : Math.PI / 2.05}
       />
     </>
   )
 }
 
 export default function App() {
+  const [is2D, setIs2D] = useState(false)
+
   return (
-    <div style={{ width: '100%', height: 560 }}>
-      <Canvas shadows camera={{ position: [0, 6.5, 5.5], fov: 42 }} dpr={[1, 2]}>
-        <OpticalScene />
+    <div style={{ width: '100%', height: 560, position: 'relative' }}>
+      <Canvas
+        key={is2D ? '2d' : '3d'}
+        shadows
+        orthographic={is2D}
+        camera={
+          is2D
+            ? { position: [0, 15, 0], zoom: 80, near: 0.1, far: 100 }
+            : { position: [0, 6.5, 5.5], fov: 42 }
+        }
+        dpr={[1, 2]}
+      >
+        <OpticalScene is2D={is2D} />
       </Canvas>
+      <button
+        onClick={() => setIs2D((v) => !v)}
+        style={{
+          position: 'absolute',
+          top: 12,
+          right: 12,
+          padding: '6px 14px',
+          background: 'rgba(255,255,255,0.92)',
+          border: '1px solid #ccc',
+          borderRadius: 6,
+          fontSize: 13,
+          cursor: 'pointer',
+          zIndex: 10,
+        }}
+      >
+        {is2D ? '▭ 2D' : '⬡ 3D'}
+      </button>
     </div>
   )
 }
