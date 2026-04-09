@@ -24,7 +24,7 @@ export function Beam({ points, baseColor = '#2a6cff', flowColor = '#80b3ff' }) {
       <Line
         points={linePoints}
         color={baseColor}
-        lineWidth={3}
+        lineWidth={5}
         transparent
         opacity={0.35}
       />
@@ -32,7 +32,7 @@ export function Beam({ points, baseColor = '#2a6cff', flowColor = '#80b3ff' }) {
         ref={flowRef}
         points={linePoints}
         color={flowColor}
-        lineWidth={2}
+        lineWidth={4}
         transparent
         opacity={0.95}
         dashed
