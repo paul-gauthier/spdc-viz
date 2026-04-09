@@ -61,8 +61,8 @@ function Table() {
 
 function BreadboardHoles() {
   const dots = []
-  for (let x = -4.5; x <= 4.5; x += 0.4) {
-    for (let z = -2.5; z <= 2.5; z += 0.4) {
+  for (let x = -4.5; x <= 4.5; x += 1) {
+    for (let z = -2.5; z <= 2.5; z += 1) {
       dots.push(
         <mesh key={`${x}-${z}`} position={[x, 0.001, z]} rotation={[-Math.PI / 2, 0, 0]}>
           <ringGeometry args={[0.018, 0.03, 16]} />
@@ -90,7 +90,7 @@ function OpticMount({ position, rotationY = 0, opticMaterial, label }) {
   return (
     <group position={position} rotation={[0, rotationY, 0]}>
       <mesh rotation={[0, 0, Math.PI / 2]} castShadow>
-        <cylinderGeometry args={[0.13, 0.13, 0.05, 32]} />
+        <cylinderGeometry args={[0.5, 0.5, 0.05, 32]} />
         {opticMaterial}
       </mesh>
       <mesh position={[0, -0.18, 0]} castShadow>
