@@ -67,7 +67,7 @@ function BreadboardHoles() {
     for (let z = -2.5; z <= 2.5; z += 1) {
       dots.push(
         <mesh key={`${x}-${z}`} position={[x, 0.001, z]} rotation={[-Math.PI / 2, 0, 0]}>
-          <ringGeometry args={[0.018, 0.03, 16]} />
+          <ringGeometry args={[0.075, 0.125, 16]} />
           <meshBasicMaterial color="#444" />
         </mesh>
       )
