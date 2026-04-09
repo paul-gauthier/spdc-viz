@@ -1,4 +1,4 @@
-import React, { useCallback, useRef, useState } from 'react'
+import React, { useCallback, useMemo, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { Html } from '@react-three/drei'
 import {
@@ -139,6 +139,32 @@ function FiberFill({ power }) {
   )
 }
 
+function FiberPigtail() {
+  const curve = useMemo(
+    () =>
+      new THREE.CatmullRomCurve3([
+        new THREE.Vector3(FIBER_LENGTH / 2 + 0.015, 0, 0),
+        new THREE.Vector3(FIBER_LENGTH / 2 + 0.08, -0.01, 0),
+        new THREE.Vector3(FIBER_LENGTH / 2 + 0.16, -0.08, 0.025),
+        new THREE.Vector3(FIBER_LENGTH / 2 + 0.24, -0.18, 0.06),
+      ]),
+    [],
+  )
+
+  return (
+    <>
+      <mesh position={[FIBER_LENGTH / 2 + 0.012, 0, 0]} rotation={[0, 0, Math.PI / 2]} castShadow>
+        <cylinderGeometry args={[0.035, 0.03, 0.04, 24]} />
+        <meshStandardMaterial color="#444" metalness={0.25} roughness={0.7} />
+      </mesh>
+      <mesh castShadow>
+        <tubeGeometry args={[curve, 24, 0.024, 10, false]} />
+        <meshStandardMaterial color="#facc15" metalness={0.05} roughness={0.82} />
+      </mesh>
+    </>
+  )
+}
+
 export function FiberBody({ coupling = 0 }) {
   const power = clamp01(coupling)
 
@@ -149,6 +175,7 @@ export function FiberBody({ coupling = 0 }) {
         <meshStandardMaterial color="#555" metalness={0.5} roughness={0.5} />
       </mesh>
       <FiberFill power={power} />
+      <FiberPigtail />
     </>
   )
 }
