@@ -26,22 +26,16 @@ const DEFAULT_LEVEL = {
     {
       id: 'mirror1',
       type: 'mirror',
-      hole: [3, 1],
-      yaw: Math.PI / 4,
-      label: 'Mirror 1',
+      hole: [5, 1],
+      yaw: -3 * Math.PI / 4,
+      label: 'Mirror',
     },
     {
       id: 'mirror2',
       type: 'mirror',
       hole: [3, 4],
       yaw: Math.PI / 4,
-      label: 'Mirror 2',
-    },
-    {
-      id: 'lens',
-      type: 'lens',
-      hole: [6, 4],
-      yaw: 0,
+      label: 'Mirror',
     },
     {
       id: 'fiber',
