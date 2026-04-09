@@ -31,7 +31,7 @@ function pointOnPolyline(points, t) {
 
 function Label({ children, position }) {
   return (
-    <Html position={position} center distanceFactor={10}>
+    <Html position={position} occlude distanceFactor={10}>
       <div
         style={{
           padding: '4px 8px',
@@ -40,6 +40,8 @@ function Label({ children, position }) {
           borderRadius: 6,
           fontSize: 12,
           whiteSpace: 'nowrap',
+          transform: 'translate(10px, -110%)',
+          pointerEvents: 'none',
         }}
       >
         {children}
@@ -79,7 +81,7 @@ function Laser({ position }) {
         <boxGeometry args={[0.5, 0.18, 0.18]} />
         <meshStandardMaterial color="#666" metalness={0.6} roughness={0.4} />
       </mesh>
-      <Label position={[0, 0.28, 0]}>Laser</Label>
+      <Label position={[0.28, 0.2, 0.16]}>Laser</Label>
     </group>
   )
 }
@@ -95,7 +97,7 @@ function Mirror({ position, rotationY = 0, name }) {
         <cylinderGeometry args={[0.04, 0.04, 0.25, 24]} />
         <meshStandardMaterial color="#777" metalness={0.7} roughness={0.35} />
       </mesh>
-      <Label position={[0, 0.35, 0]}>{name}</Label>
+      <Label position={[0.18, 0.32, 0.18]}>{name}</Label>
     </group>
   )
 }
@@ -117,7 +119,7 @@ function Lens({ position }) {
         <cylinderGeometry args={[0.04, 0.04, 0.25, 24]} />
         <meshStandardMaterial color="#777" metalness={0.7} roughness={0.35} />
       </mesh>
-      <Label position={[0, 0.35, 0]}>Lens</Label>
+      <Label position={[0.18, 0.32, 0.18]}>Lens</Label>
     </group>
   )
 }
@@ -133,7 +135,7 @@ function FiberCoupler({ position }) {
         <cylinderGeometry args={[0.03, 0.03, 0.18, 24]} rotation={[0, 0, Math.PI / 2]} />
         <meshStandardMaterial color="#aaa" metalness={0.8} roughness={0.2} />
       </mesh>
-      <Label position={[0, 0.3, 0]}>Fiber</Label>
+      <Label position={[0.24, 0.24, 0.16]}>Fiber</Label>
     </group>
   )
 }
