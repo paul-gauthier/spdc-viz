@@ -26,13 +26,13 @@ export const level1 = {
       id: 'signal',
       type: 'fiber',
       hole: [10, 3],
-      yaw: 3 * Math.PI / 8,
+      yaw: Math.atan2(1, -5),
     },
     {
       id: 'idler',
       type: 'fiber',
       hole: [10, 1],
-      yaw: 3 * Math.PI / 8,
+      yaw: Math.atan2(-1, -5),
     },
   ],
   beams: [
