@@ -121,9 +121,9 @@ function FiberFill({ power, color = '#38bdf8', glowColor = '#0ea5e9' }) {
           <meshStandardMaterial
             color={color}
             emissive={glowColor}
-            emissiveIntensity={0.4 + fill * 1.2}
+            emissiveIntensity={0.9 + fill * 1.8}
             transparent
-            opacity={0.85}
+            opacity={0.95}
           />
         </mesh>
       ) : null}
@@ -132,7 +132,7 @@ function FiberFill({ power, color = '#38bdf8', glowColor = '#0ea5e9' }) {
         <meshStandardMaterial
           color={color}
           emissive={glowColor}
-          emissiveIntensity={0.6 + fill * 1.4}
+          emissiveIntensity={1 + fill * 2}
         />
       </mesh>
     </>

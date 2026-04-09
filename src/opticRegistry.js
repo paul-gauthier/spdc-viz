@@ -209,7 +209,7 @@ export const OPTIC_TYPES = {
             [optic.id]: {
               coupling: nextCoupling,
               couplingColor: beam.baseColor ?? '#2a6cff',
-              couplingGlowColor: beam.flowColor ?? '#80b3ff',
+              couplingGlowColor: beam.baseColor ?? '#2a6cff',
             },
           },
         }
