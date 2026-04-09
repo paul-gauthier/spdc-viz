@@ -230,6 +230,8 @@ export function OpticalScene({
   level,
   opticYaws,
   onOpticYawChange,
+  hasUserInteracted3D,
+  onFirst3DInteraction,
   saved3DView,
   onSave3DView,
 }) {
@@ -332,7 +334,10 @@ export function OpticalScene({
           optic={optic}
           opticState={beamResult.opticStateById[optic.id] ?? {}}
           onOpticYawChange={onOpticYawChange}
-          onDragStart={() => setIsDragging(true)}
+          onDragStart={() => {
+            onFirst3DInteraction?.()
+            setIsDragging(true)
+          }}
           onDragEnd={() => setIsDragging(false)}
         />
       ))}
@@ -357,7 +362,12 @@ export function OpticalScene({
       <OrbitControls
         ref={controlsRef}
         makeDefault
+        autoRotate={!is2D && !hasUserInteracted3D}
+        autoRotateSpeed={0.25}
         enabled={!isDragging}
+        onStart={() => {
+          if (!is2D) onFirst3DInteraction?.()
+        }}
         onEnd={saveCurrent3DView}
         enableRotate={!is2D}
         enableZoom={!is2D}

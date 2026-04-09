@@ -8,11 +8,16 @@ const DEFAULT_LEVEL_ID = 'level2'
 export default function App() {
   const level = LEVELS[DEFAULT_LEVEL_ID]
   const [is2D, setIs2D] = useState(false)
+  const [hasUserInteracted3D, setHasUserInteracted3D] = useState(false)
   const [opticYaws, setOpticYaws] = useState(() => buildInitialOpticYaws(level))
   const saved3DViewRef = useRef(null)
 
   const handleSave3DView = useCallback((view) => {
     saved3DViewRef.current = view
+  }, [])
+
+  const handleFirst3DInteraction = useCallback(() => {
+    setHasUserInteracted3D(true)
   }, [])
 
   const handleOpticYawChange = useCallback((id, yaw) => {
@@ -79,6 +84,8 @@ export default function App() {
           level={level}
           opticYaws={opticYaws}
           onOpticYawChange={handleOpticYawChange}
+          hasUserInteracted3D={hasUserInteracted3D}
+          onFirst3DInteraction={handleFirst3DInteraction}
           saved3DView={saved3DViewRef.current}
           onSave3DView={handleSave3DView}
         />
