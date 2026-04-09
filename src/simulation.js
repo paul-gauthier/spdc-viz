@@ -5,7 +5,7 @@ import { getOpticType } from './opticRegistry'
 
 const DEFAULT_MAX_TRACED_BEAMS = 64
 
-function clipRayToBoardBounds(origin, direction, board, padding = 2) {
+function clipRayToBoardBounds(origin, direction, board, padding = 1.5) {
   if (!board) return null
 
   const { width, depth } = getBoardSize(board)
