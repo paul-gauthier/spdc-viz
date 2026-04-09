@@ -7,7 +7,7 @@ import {
   FIBER_NEGATIVE_X_FACE_RADIUS,
   FIBER_POSITIVE_X_FACE_RADIUS,
   clamp01,
-} from './simulation'
+} from './simulationCore'
 
 function Label({ children, position }) {
   return (

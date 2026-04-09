@@ -1,4 +1,5 @@
-import { holeToWorld, localOffsetToWorld } from './simulation'
+import { getOpticType } from './opticRegistry'
+import { holeToWorld, localOffsetToWorld } from './simulationCore'
 
 export const level1 = {
   board: {
@@ -56,18 +57,27 @@ function normalizeBeams(level) {
 }
 
 export function buildInitialOpticYaws(level) {
-  return Object.fromEntries(level.optics.map((optic) => [optic.id, optic.yaw ?? 0]))
+  return Object.fromEntries(
+    level.optics.map((optic) => {
+      const typeDefaults = getOpticType(optic.type).defaults ?? {}
+      return [optic.id, optic.yaw ?? typeDefaults.yaw ?? 0]
+    }),
+  )
 }
 
 export function resolveLevel(level, opticYaws = {}) {
   const optics = level.optics.map((optic) => {
-    const yaw = opticYaws[optic.id] ?? optic.yaw ?? 0
+    const typeDefaults = getOpticType(optic.type).defaults ?? {}
+    const yaw = opticYaws[optic.id] ?? optic.yaw ?? typeDefaults.yaw ?? 0
+    const beamExitOffset = optic.beamExitOffset ?? typeDefaults.beamExitOffset ?? [0, 0, 0]
     const position = holeToWorld(level.board, optic.hole)
-    const beamPosition = position.clone().add(localOffsetToWorld(optic.beamExitOffset, yaw))
+    const beamPosition = position.clone().add(localOffsetToWorld(beamExitOffset, yaw))
 
     return {
       ...optic,
+      label: optic.label ?? typeDefaults.label,
       yaw,
+      beamExitOffset,
       position,
       renderPosition: position.toArray(),
       beamPosition,

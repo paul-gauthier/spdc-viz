@@ -2,16 +2,10 @@ import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import { Environment, Line, OrbitControls } from '@react-three/drei'
 import { resolveLevel } from './levels'
-import {
-  FIBER_OPTIC_RADIUS,
-  LASER_OPTIC_RADIUS,
-  LENS_RADIUS,
-  MIRROR_RADIUS,
-  getBoardSize,
-  holeToWorld,
-  traceAllBeams,
-} from './simulation'
-import { FiberBody, LaserBody, LensBody, MirrorBody, MountedOptic } from './optics'
+import { getOpticType, isTraceElement } from './opticRegistry'
+import { MountedOptic } from './optics'
+import { getBoardSize, holeToWorld } from './simulationCore'
+import { traceAllBeams } from './simulation'
 
 export function Beam({ points, baseColor = '#2a6cff', flowColor = '#80b3ff' }) {
   const flowRef = useRef()
@@ -98,62 +92,25 @@ function Fit2DCamera({ board, enabled }) {
 }
 
 function Optic({ optic, coupling = 0, onOpticYawChange, onDragStart, onDragEnd }) {
-  switch (optic.type) {
-    case 'laser':
-      return (
-        <MountedOptic
-          position={optic.renderPosition}
-          yaw={optic.yaw}
-          label={optic.label ?? 'Laser'}
-          opticRadius={LASER_OPTIC_RADIUS}
-        >
-          <LaserBody />
-        </MountedOptic>
-      )
-    case 'mirror':
-      return (
-        <MountedOptic
-          position={optic.renderPosition}
-          yaw={optic.yaw}
-          label={optic.label ?? optic.id}
-          opticRadius={MIRROR_RADIUS}
-          rotatable
-          onYawChange={(yaw) => onOpticYawChange(optic.id, yaw)}
-          onDragStart={onDragStart}
-          onDragEnd={onDragEnd}
-        >
-          <MirrorBody />
-        </MountedOptic>
-      )
-    case 'lens':
-      return (
-        <MountedOptic
-          position={optic.renderPosition}
-          yaw={optic.yaw}
-          label={optic.label ?? 'Lens'}
-          opticRadius={LENS_RADIUS}
-        >
-          <LensBody />
-        </MountedOptic>
-      )
-    case 'fiber':
-      return (
-        <MountedOptic
-          position={optic.renderPosition}
-          yaw={optic.yaw}
-          label={optic.label ?? 'Fiber'}
-          opticRadius={FIBER_OPTIC_RADIUS}
-          rotatable
-          onYawChange={(yaw) => onOpticYawChange(optic.id, yaw)}
-          onDragStart={onDragStart}
-          onDragEnd={onDragEnd}
-        >
-          <FiberBody coupling={coupling} />
-        </MountedOptic>
-      )
-    default:
-      return null
-  }
+  const opticType = getOpticType(optic.type)
+  const Body = opticType.render.Body
+  const bodyProps = opticType.render.getBodyProps?.({ optic, coupling }) ?? {}
+  const rotatable = !!opticType.interaction?.rotatable
+
+  return (
+    <MountedOptic
+      position={optic.renderPosition}
+      yaw={optic.yaw}
+      label={optic.label ?? opticType.defaults?.label ?? optic.id}
+      opticRadius={opticType.render.opticRadius}
+      rotatable={rotatable}
+      onYawChange={rotatable ? (yaw) => onOpticYawChange(optic.id, yaw) : undefined}
+      onDragStart={onDragStart}
+      onDragEnd={onDragEnd}
+    >
+      <Body {...bodyProps} />
+    </MountedOptic>
+  )
 }
 
 export function OpticalScene({ is2D, level, opticYaws, onOpticYawChange }) {
@@ -163,7 +120,7 @@ export function OpticalScene({ is2D, level, opticYaws, onOpticYawChange }) {
   const { board, optics, opticsById, beams } = resolvedLevel
 
   const beamResult = useMemo(() => {
-    const elements = optics.filter((optic) => optic.type === 'mirror' || optic.type === 'fiber')
+    const elements = optics.filter(isTraceElement)
 
     return traceAllBeams({
       beams,
