@@ -365,7 +365,7 @@ function FiberCoupler({ position, yaw = 0, coupling = 0 }) {
     <OpticMount
       position={position}
       yaw={yaw}
-      label={`Fiber ${power.toFixed(2)}`}
+      label="Fiber"
       geometryArgs={[FIBER_NEGATIVE_X_FACE_RADIUS, FIBER_POSITIVE_X_FACE_RADIUS, FIBER_LENGTH, 32]}
       opticMaterial={<meshStandardMaterial color="#555" metalness={0.5} roughness={0.5} />}
     >
