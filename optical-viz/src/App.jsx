@@ -89,9 +89,11 @@ function Laser({ position }) {
 function Mirror({ position, rotationY = 0, name }) {
   return (
     <group position={position} rotation={[0, rotationY, 0]}>
-      <mesh castShadow>
-        <boxGeometry args={[0.04, 0.35, 0.25]} />
-        <meshStandardMaterial color="#bfc7cf" metalness={0.9} roughness={0.15} />
+      <mesh rotation={[0, 0, Math.PI / 2]} castShadow>
+        <cylinderGeometry args={[0.13, 0.13, 0.05, 32]} />
+        <meshStandardMaterial attach="material-0" color="#666" metalness={0.7} roughness={0.35} />
+        <meshStandardMaterial attach="material-1" color="#dfe6ee" metalness={1} roughness={0.02} />
+        <meshStandardMaterial attach="material-2" color="#dfe6ee" metalness={1} roughness={0.02} />
       </mesh>
       <mesh position={[0, -0.18, 0]} castShadow>
         <cylinderGeometry args={[0.04, 0.04, 0.25, 24]} />
