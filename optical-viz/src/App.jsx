@@ -69,7 +69,7 @@ function computeBeamPath(laserPos, m1Pos, m1Angle, m2Pos, m2Angle) {
 
 function Label({ children, position }) {
   return (
-    <Html position={position} occlude distanceFactor={10}>
+    <Html position={position} occlude distanceFactor={10} style={{ pointerEvents: 'none' }}>
       <div
         style={{
           padding: '4px 8px',
@@ -169,38 +169,73 @@ function InteractiveMirror({ position, angle, onAngleChange, name, onDragStart, 
   const [dragging, setDragging] = useState(false)
   const dragRef = useRef(null)
 
-  const getAngle = useCallback(
-    (pt) => Math.atan2(pt.z - position[2], pt.x - position[0]),
+  const getAngleFromRay = useCallback(
+    (ray) => {
+      const hit = new THREE.Vector3()
+      const dragY = position[1] - POST_HEIGHT / 2
+      const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -dragY)
+      if (!ray.intersectPlane(plane, hit)) return null
+      return Math.atan2(hit.z - position[2], hit.x - position[0])
+    },
     [position],
   )
 
   const handlePointerDown = useCallback(
     (e) => {
+      const startPointerAngle = getAngleFromRay(e.ray)
+      if (startPointerAngle === null) return
       e.stopPropagation()
       e.target.setPointerCapture(e.pointerId)
       setDragging(true)
-      dragRef.current = { startPA: getAngle(e.point), startAngle: angle }
+      dragRef.current = { startPA: startPointerAngle, startAngle: angle }
       document.body.style.cursor = 'grabbing'
       onDragStart?.()
     },
-    [angle, getAngle, onDragStart],
+    [angle, getAngleFromRay, onDragStart],
   )
 
   const handlePointerMove = useCallback(
     (e) => {
-      if (!dragRef.current || !e.point) return
-      const delta = getAngle(e.point) - dragRef.current.startPA
+      if (!dragRef.current) return
+      const pointerAngle = getAngleFromRay(e.ray)
+      if (pointerAngle === null) return
+      e.stopPropagation()
+      const delta = pointerAngle - dragRef.current.startPA
       onAngleChange(dragRef.current.startAngle - delta)
     },
-    [getAngle, onAngleChange],
+    [getAngleFromRay, onAngleChange],
   )
 
-  const handlePointerUp = useCallback(() => {
-    setDragging(false)
-    dragRef.current = null
-    document.body.style.cursor = 'auto'
-    onDragEnd?.()
-  }, [onDragEnd])
+  const endDrag = useCallback(
+    (e) => {
+      if (!dragRef.current && !dragging) return
+      e?.stopPropagation?.()
+      e?.target?.releasePointerCapture?.(e.pointerId)
+      setDragging(false)
+      dragRef.current = null
+      document.body.style.cursor = 'auto'
+      onDragEnd?.()
+    },
+    [dragging, onDragEnd],
+  )
+
+  const handlePointerOver = useCallback(
+    (e) => {
+      e.stopPropagation()
+      setHovered(true)
+      document.body.style.cursor = dragging ? 'grabbing' : 'grab'
+    },
+    [dragging],
+  )
+
+  const handlePointerOut = useCallback(
+    (e) => {
+      e.stopPropagation()
+      setHovered(false)
+      if (!dragging) document.body.style.cursor = 'auto'
+    },
+    [dragging],
+  )
 
   const opticR = 0.5
   const postH = POST_HEIGHT - opticR
@@ -215,22 +250,28 @@ function InteractiveMirror({ position, angle, onAngleChange, name, onDragStart, 
         rotation={[-Math.PI / 2, 0, 0]}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
-        onPointerUp={handlePointerUp}
-        onPointerOver={() => {
-          setHovered(true)
-          document.body.style.cursor = 'grab'
-        }}
-        onPointerOut={() => {
-          setHovered(false)
-          if (!dragging) document.body.style.cursor = 'auto'
-        }}
+        onPointerUp={endDrag}
+        onPointerCancel={endDrag}
+        onLostPointerCapture={endDrag}
+        onPointerOver={handlePointerOver}
+        onPointerOut={handlePointerOut}
       >
         <circleGeometry args={[1.4, 32]} />
         <meshBasicMaterial visible={false} side={THREE.DoubleSide} />
       </mesh>
 
       {/* visible rotation ring */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.01, 0]}>
+      <mesh
+        rotation={[-Math.PI / 2, 0, 0]}
+        position={[0, -0.01, 0]}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={endDrag}
+        onPointerCancel={endDrag}
+        onLostPointerCapture={endDrag}
+        onPointerOver={handlePointerOver}
+        onPointerOut={handlePointerOut}
+      >
         <torusGeometry args={[0.65, 0.035, 12, 48]} />
         <meshStandardMaterial color={ringColor} metalness={0.4} roughness={0.3} />
       </mesh>
