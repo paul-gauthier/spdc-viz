@@ -41,7 +41,6 @@ export const OPTIC_TYPES = {
     },
     interaction: {
       rotatable: true,
-      handleYawOffset: Math.PI,
     },
     simulation: {
       isTraceElement: true,
@@ -84,6 +83,7 @@ export const OPTIC_TYPES = {
     },
     interaction: {
       rotatable: true,
+      handleYawOffset: Math.PI,
     },
     simulation: {
       isTraceElement: true,
