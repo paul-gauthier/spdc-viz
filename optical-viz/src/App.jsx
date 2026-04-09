@@ -30,7 +30,8 @@ function pointOnPolyline(points, t) {
 }
 
 const POST_HEIGHT = 2
-const MIRROR_HIT_RADIUS = 0.55
+const MIRROR_RADIUS = 0.5
+const BEAM_TRACE_EPSILON = 1e-4
 
 function reflectDir(incident, normal) {
   const d = incident.clone().normalize()
@@ -43,22 +44,38 @@ function mirrorNormal(rotY) {
   return new THREE.Vector3(Math.cos(rotY), 0, -Math.sin(rotY))
 }
 
+function intersectRayWithMirror(origin, dir, center, angle) {
+  const normal = mirrorNormal(angle)
+  const denom = dir.dot(normal)
+
+  if (Math.abs(denom) < 1e-6) return null
+
+  const t = new THREE.Vector3().subVectors(center, origin).dot(normal) / denom
+  if (t <= 0) return null
+
+  const point = origin.clone().add(dir.clone().multiplyScalar(t))
+  if (point.distanceTo(center) > MIRROR_RADIUS) return null
+
+  return { point, normal }
+}
+
 function computeBeamPath(laserPos, m1Pos, m1Angle, m2Pos, m2Angle) {
+  const mirrors = [
+    { position: m1Pos, angle: m1Angle },
+    { position: m2Pos, angle: m2Angle },
+  ]
   const path = [laserPos.clone()]
 
+  let origin = laserPos.clone()
   let dir = new THREE.Vector3().subVectors(m1Pos, laserPos).normalize()
-  path.push(m1Pos.clone())
 
-  dir = reflectDir(dir, mirrorNormal(m1Angle))
+  for (const mirror of mirrors) {
+    const hit = intersectRayWithMirror(origin, dir, mirror.position, mirror.angle)
+    if (!hit) break
 
-  const toM2 = new THREE.Vector3().subVectors(m2Pos, m1Pos)
-  const proj = toM2.dot(dir)
-  if (proj > 0) {
-    const closest = m1Pos.clone().add(dir.clone().multiplyScalar(proj))
-    if (closest.distanceTo(m2Pos) < MIRROR_HIT_RADIUS) {
-      path.push(m2Pos.clone())
-      dir = reflectDir(dir, mirrorNormal(m2Angle))
-    }
+    path.push(hit.point.clone())
+    dir = reflectDir(dir, hit.normal)
+    origin = hit.point.clone().add(dir.clone().multiplyScalar(BEAM_TRACE_EPSILON))
   }
 
   path.push(path[path.length - 1].clone().add(dir.clone().multiplyScalar(8)))
@@ -237,7 +254,7 @@ function InteractiveMirror({ position, angle, onAngleChange, name, onDragStart, 
     [dragging],
   )
 
-  const opticR = 0.5
+  const opticR = MIRROR_RADIUS
   const postH = POST_HEIGHT - opticR
   const ringColor = dragging ? '#ffdd00' : hovered ? '#ffaa00' : '#ff8800'
 
