@@ -295,7 +295,7 @@ function Laser({ position, yaw = 0 }) {
   )
 }
 
-function OpticMount({ position, yaw = 0, opticMaterial, label, geometryArgs = [0.5, 0.5, 0.05, 32] }) {
+function OpticMount({ position, yaw = 0, opticMaterial, label, geometryArgs = [0.5, 0.5, 0.05, 32], children }) {
   const opticRadius = Math.max(geometryArgs[0], geometryArgs[1])
   const postHeight = POST_HEIGHT - opticRadius
 
@@ -305,6 +305,7 @@ function OpticMount({ position, yaw = 0, opticMaterial, label, geometryArgs = [0
         <cylinderGeometry args={geometryArgs} />
         {opticMaterial}
       </mesh>
+      {children}
       <mesh position={[0, -(POST_HEIGHT + opticRadius) / 2, 0]} castShadow>
         <cylinderGeometry args={[0.25, 0.25, postHeight, 32]} />
         <meshStandardMaterial color="#d4d4d8" metalness={0.9} roughness={0.18} />
@@ -327,15 +328,49 @@ function Lens({ position, yaw = 0 }) {
   )
 }
 
+function FiberFill({ power }) {
+  const fill = clamp01(power)
+
+  if (fill <= 0) return null
+
+  const shellOffset = 0.006
+  const fillLength = FIBER_LENGTH * fill
+  const endRadius = THREE.MathUtils.lerp(
+    FIBER_NEGATIVE_X_FACE_RADIUS + shellOffset,
+    FIBER_POSITIVE_X_FACE_RADIUS + shellOffset,
+    fill,
+  )
+  const xCenter = -FIBER_LENGTH / 2 + fillLength / 2
+
+  return (
+    <mesh position={[xCenter, 0, 0]} rotation={[0, 0, Math.PI / 2]} castShadow>
+      <cylinderGeometry
+        args={[FIBER_NEGATIVE_X_FACE_RADIUS + shellOffset, endRadius, fillLength, 32]}
+      />
+      <meshStandardMaterial
+        color="#38bdf8"
+        emissive="#0ea5e9"
+        emissiveIntensity={0.4 + fill * 1.2}
+        transparent
+        opacity={0.85}
+      />
+    </mesh>
+  )
+}
+
 function FiberCoupler({ position, yaw = 0, coupling = 0 }) {
+  const power = clamp01(coupling)
+
   return (
     <OpticMount
       position={position}
       yaw={yaw}
-      label={`Fiber ${coupling.toFixed(2)}`}
-      geometryArgs={[0.25, 0.15, 1, 32]}
+      label={`Fiber ${power.toFixed(2)}`}
+      geometryArgs={[FIBER_NEGATIVE_X_FACE_RADIUS, FIBER_POSITIVE_X_FACE_RADIUS, FIBER_LENGTH, 32]}
       opticMaterial={<meshStandardMaterial color="#555" metalness={0.5} roughness={0.5} />}
-    />
+    >
+      <FiberFill power={power} />
+    </OpticMount>
   )
 }
 
