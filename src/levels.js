@@ -25,7 +25,7 @@ export const level1 = {
     {
       id: 'mirror2',
       type: 'mirror',
-      hole: [3, 4],
+      hole: [5, 4],
       yaw: Math.PI / 4,
       label: 'Mirror',
     },
