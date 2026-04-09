@@ -24,7 +24,7 @@ export function Beam({ points, baseColor = '#2a6cff', flowColor = '#80b3ff' }) {
       <Line
         points={linePoints}
         color={baseColor}
-        lineWidth={5}
+        lineWidth={6}
         transparent
         opacity={0.35}
         depthWrite={false}
