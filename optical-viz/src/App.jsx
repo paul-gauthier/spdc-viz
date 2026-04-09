@@ -208,6 +208,8 @@ function InteractiveMirror({ position, angle, onAngleChange, name, onDragStart, 
 
   return (
     <group position={position}>
+      {/* adjustment ring group — halfway down the post */}
+      <group position={[0, -POST_HEIGHT / 2, 0]}>
       {/* invisible drag surface — large disc for reliable pointer capture */}
       <mesh
         rotation={[-Math.PI / 2, 0, 0]}
@@ -239,6 +241,7 @@ function InteractiveMirror({ position, angle, onAngleChange, name, onDragStart, 
           <coneGeometry args={[0.05, 0.14, 8]} />
           <meshStandardMaterial color={ringColor} />
         </mesh>
+      </group>
       </group>
 
       {/* mirror disc */}
