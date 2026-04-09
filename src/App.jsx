@@ -3,7 +3,7 @@ import { Canvas } from '@react-three/fiber'
 import { LEVELS, buildInitialOpticYaws } from './levels'
 import { OpticalScene } from './scene'
 
-const DEFAULT_LEVEL_ID = 'level1'
+const DEFAULT_LEVEL_ID = 'level2'
 
 export default function App() {
   const level = LEVELS[DEFAULT_LEVEL_ID]
