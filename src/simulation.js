@@ -1,9 +1,46 @@
 export * from './simulationCore'
 
-import { BEAM_TRACE_EPSILON, yawToDirection } from './simulationCore'
+import { BEAM_TRACE_EPSILON, getBoardSize, yawToDirection } from './simulationCore'
 import { getOpticType } from './opticRegistry'
 
 const DEFAULT_MAX_TRACED_BEAMS = 64
+
+function clipRayToBoardBounds(origin, direction, board, padding = 1) {
+  if (!board) return null
+
+  const { width, depth } = getBoardSize(board)
+  const minX = -width / 2 - padding
+  const maxX = width / 2 + padding
+  const minZ = -depth / 2 - padding
+  const maxZ = depth / 2 + padding
+  const candidates = []
+
+  const pushCandidate = (t) => {
+    if (!(t > 1e-6)) return
+
+    const point = origin.clone().add(direction.clone().multiplyScalar(t))
+
+    if (point.x < minX - 1e-6 || point.x > maxX + 1e-6) return
+    if (point.z < minZ - 1e-6 || point.z > maxZ + 1e-6) return
+
+    candidates.push({ t, point })
+  }
+
+  if (Math.abs(direction.x) >= 1e-6) {
+    pushCandidate((minX - origin.x) / direction.x)
+    pushCandidate((maxX - origin.x) / direction.x)
+  }
+
+  if (Math.abs(direction.z) >= 1e-6) {
+    pushCandidate((minZ - origin.z) / direction.z)
+    pushCandidate((maxZ - origin.z) / direction.z)
+  }
+
+  if (candidates.length === 0) return null
+
+  candidates.sort((a, b) => a.t - b.t)
+  return candidates[0].point
+}
 
 function mergeOpticStateById(target, source = {}) {
   for (const [opticId, partialState] of Object.entries(source)) {
@@ -49,6 +86,7 @@ export function traceBeam({
   origin,
   direction,
   elements,
+  board,
   tailLength = 8,
   maxBounces = 8,
   initialOpticStateById = {},
@@ -125,7 +163,11 @@ export function traceBeam({
       .add(rayDirection.clone().multiplyScalar(BEAM_TRACE_EPSILON))
   }
 
-  path.push(path[path.length - 1].clone().add(rayDirection.clone().multiplyScalar(tailLength)))
+  const finalPoint =
+    clipRayToBoardBounds(path[path.length - 1], rayDirection, board) ??
+    path[path.length - 1].clone().add(rayDirection.clone().multiplyScalar(tailLength))
+
+  path.push(finalPoint)
   return {
     path,
     opticStateById,
@@ -136,6 +178,7 @@ export function traceBeam({
 }
 
 export function traceAllBeams({
+  board,
   beams = [],
   opticsById,
   elements,
@@ -166,6 +209,7 @@ export function traceAllBeams({
       origin: beam.origin,
       direction: beam.direction,
       elements,
+      board,
       tailLength: beam.tailLength,
       maxBounces: beam.maxBounces,
       initialOpticStateById: opticStateById,

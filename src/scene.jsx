@@ -265,6 +265,7 @@ export function OpticalScene({
     const elements = optics.filter(isTraceElement)
 
     return traceAllBeams({
+      board,
       beams,
       opticsById,
       elements,
