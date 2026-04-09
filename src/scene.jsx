@@ -27,6 +27,8 @@ export function Beam({ points, baseColor = '#2a6cff', flowColor = '#80b3ff' }) {
         lineWidth={5}
         transparent
         opacity={0.35}
+        depthWrite={false}
+        renderOrder={10}
       />
       <Line
         ref={flowRef}
@@ -39,6 +41,8 @@ export function Beam({ points, baseColor = '#2a6cff', flowColor = '#80b3ff' }) {
         dashScale={8}
         dashSize={1.6}
         gapSize={0.2}
+        depthWrite={false}
+        renderOrder={11}
       />
     </group>
   )
