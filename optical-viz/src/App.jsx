@@ -78,21 +78,17 @@ function BreadboardHoles() {
 
 function Laser({ position }) {
   return (
-    <group position={position}>
-      <mesh castShadow>
-        <boxGeometry args={[0.5, 0.18, 0.18]} />
-        <meshStandardMaterial color="#666" metalness={0.6} roughness={0.4} />
-      </mesh>
-      <Label position={[0.28, 0.2, 0.16]}>Laser</Label>
-    </group>
+    <OpticMount position={position} label="Laser" geometryArgs={[0.15, 0.15, 1, 32]} opticMaterial={
+      <meshStandardMaterial color="#666" metalness={0.6} roughness={0.4} />
+    } />
   )
 }
 
-function OpticMount({ position, rotationY = 0, opticMaterial, label }) {
+function OpticMount({ position, rotationY = 0, opticMaterial, label, geometryArgs = [0.5, 0.5, 0.05, 32] }) {
   return (
     <group position={position} rotation={[0, rotationY, 0]}>
       <mesh rotation={[0, 0, Math.PI / 2]} castShadow>
-        <cylinderGeometry args={[0.5, 0.5, 0.05, 32]} />
+        <cylinderGeometry args={geometryArgs} />
         {opticMaterial}
       </mesh>
       <mesh position={[0, -POST_HEIGHT / 2, 0]} castShadow>
@@ -126,17 +122,9 @@ function Lens({ position }) {
 
 function FiberCoupler({ position }) {
   return (
-    <group position={position}>
-      <mesh castShadow>
-        <boxGeometry args={[0.28, 0.2, 0.2]} />
-        <meshStandardMaterial color="#555" metalness={0.5} roughness={0.5} />
-      </mesh>
-      <mesh position={[0.2, 0, 0]} castShadow>
-        <cylinderGeometry args={[0.03, 0.03, 0.18, 24]} rotation={[0, 0, Math.PI / 2]} />
-        <meshStandardMaterial color="#aaa" metalness={0.8} roughness={0.2} />
-      </mesh>
-      <Label position={[0.24, 0.24, 0.16]}>Fiber</Label>
-    </group>
+    <OpticMount position={position} label="Fiber" geometryArgs={[0.15, 0.15, 1, 32]} opticMaterial={
+      <meshStandardMaterial color="#555" metalness={0.5} roughness={0.5} />
+    } />
   )
 }
 
