@@ -144,9 +144,10 @@ function FiberPigtail() {
     () =>
       new THREE.CatmullRomCurve3([
         new THREE.Vector3(FIBER_LENGTH / 2 + 0.015, 0, 0),
-        new THREE.Vector3(FIBER_LENGTH / 2 + 0.08, -0.01, 0),
-        new THREE.Vector3(FIBER_LENGTH / 2 + 0.16, -0.08, 0.025),
-        new THREE.Vector3(FIBER_LENGTH / 2 + 0.24, -0.18, 0.06),
+        new THREE.Vector3(FIBER_LENGTH / 2 + 0.12, -0.015, 0),
+        new THREE.Vector3(FIBER_LENGTH / 2 + 0.28, -0.08, 0.03),
+        new THREE.Vector3(FIBER_LENGTH / 2 + 0.5, -0.22, 0.08),
+        new THREE.Vector3(FIBER_LENGTH / 2 + 0.72, -0.38, 0.14),
       ]),
     [],
   )
@@ -158,7 +159,7 @@ function FiberPigtail() {
         <meshStandardMaterial color="#444" metalness={0.25} roughness={0.7} />
       </mesh>
       <mesh castShadow>
-        <tubeGeometry args={[curve, 24, 0.024, 10, false]} />
+        <tubeGeometry args={[curve, 48, 0.024, 10, false]} />
         <meshStandardMaterial color="#facc15" metalness={0.05} roughness={0.82} />
       </mesh>
     </>
