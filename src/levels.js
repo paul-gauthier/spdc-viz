@@ -3,37 +3,36 @@ import { holeToWorld, localOffsetToWorld } from './simulationCore'
 
 export const level1 = {
   board: {
-    holesX: 10,
-    holesY: 6,
+    holesX: 11,
+    holesY: 5,
     pitch: 1,
   },
   optics: [
     {
       id: 'laser',
       type: 'laser',
-      hole: [0, 1],
+      hole: [0, 2],
       yaw: 0,
       beamExitOffset: [0.25, 0, 0],
     },
     {
-      id: 'mirror1',
-      type: 'mirror',
-      hole: [5, 1],
-      yaw: -3 * Math.PI / 4,
-      label: 'Mirror',
+      id: 'spdc',
+      type: 'spdc',
+      hole: [5, 2],
+      yaw: Math.PI / 8,
+      label: 'SPDC',
     },
     {
-      id: 'mirror2',
-      type: 'mirror',
-      hole: [5, 4],
-      yaw: Math.PI / 4,
-      label: 'Mirror',
-    },
-    {
-      id: 'fiber',
+      id: 'signal',
       type: 'fiber',
-      hole: [8, 4],
-      yaw: 0,
+      hole: [10, 3],
+      yaw: 3 * Math.PI / 8,
+    },
+    {
+      id: 'idler',
+      type: 'fiber',
+      hole: [10, 1],
+      yaw: 3 * Math.PI / 8,
     },
   ],
   beams: [
