@@ -193,8 +193,8 @@ function OpticalScene() {
       <BreadboardHoles />
 
       <Laser position={[-4.5, POST_HEIGHT, -1.5]} />
-      <Mirror position={[-1.5, POST_HEIGHT, -1.5]} rotationY={0} name="Mirror 1" />
-      <Mirror position={[-1.5, POST_HEIGHT, 1.5]} rotationY={Math.PI / 2} name="Mirror 2" />
+      <Mirror position={[-1.5, POST_HEIGHT, -1.5]} rotationY={Math.PI / 4} name="Mirror 1" />
+      <Mirror position={[-1.5, POST_HEIGHT, 1.5]} rotationY={Math.PI / 4} name="Mirror 2" />
       <Lens position={[1.5, POST_HEIGHT, 1.5]} />
       <FiberCoupler position={[3.5, POST_HEIGHT, 1.5]} />
 
