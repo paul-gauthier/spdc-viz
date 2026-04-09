@@ -93,7 +93,7 @@ export function MirrorBody() {
   )
 }
 
-function FiberFill({ power }) {
+function FiberFill({ power, color = '#38bdf8', glowColor = '#0ea5e9' }) {
   const fill = clamp01(power)
 
   if (fill <= 0) return null
@@ -119,8 +119,8 @@ function FiberFill({ power }) {
         <mesh position={[xCenter, 0, 0]} rotation={[0, 0, Math.PI / 2]} castShadow>
           <cylinderGeometry args={[faceRadius, endRadius, bodyLength, 32]} />
           <meshStandardMaterial
-            color="#38bdf8"
-            emissive="#0ea5e9"
+            color={color}
+            emissive={glowColor}
             emissiveIntensity={0.4 + fill * 1.2}
             transparent
             opacity={0.85}
@@ -130,8 +130,8 @@ function FiberFill({ power }) {
       <mesh position={[faceX, 0, 0]} rotation={[0, 0, Math.PI / 2]} castShadow>
         <cylinderGeometry args={[faceRadius, faceRadius, faceThickness, 32]} />
         <meshStandardMaterial
-          color="#38bdf8"
-          emissive="#0ea5e9"
+          color={color}
+          emissive={glowColor}
           emissiveIntensity={0.6 + fill * 1.4}
         />
       </mesh>
@@ -165,7 +165,11 @@ function FiberPigtail() {
   )
 }
 
-export function FiberBody({ coupling = 0 }) {
+export function FiberBody({
+  coupling = 0,
+  couplingColor = '#38bdf8',
+  couplingGlowColor = '#0ea5e9',
+}) {
   const power = clamp01(coupling)
 
   return (
@@ -174,7 +178,7 @@ export function FiberBody({ coupling = 0 }) {
         <cylinderGeometry args={[FIBER_NEGATIVE_X_FACE_RADIUS, FIBER_POSITIVE_X_FACE_RADIUS, FIBER_LENGTH, 32]} />
         <meshStandardMaterial color="#555" metalness={0.5} roughness={0.5} />
       </mesh>
-      <FiberFill power={power} />
+      <FiberFill power={power} color={couplingColor} glowColor={couplingGlowColor} />
       <FiberPigtail />
     </>
   )

@@ -165,7 +165,11 @@ export const OPTIC_TYPES = {
     render: {
       Body: FiberBody,
       opticRadius: FIBER_OPTIC_RADIUS,
-      getBodyProps: ({ opticState = {} }) => ({ coupling: opticState.coupling ?? 0 }),
+      getBodyProps: ({ opticState = {} }) => ({
+        coupling: opticState.coupling ?? 0,
+        couplingColor: opticState.couplingColor,
+        couplingGlowColor: opticState.couplingGlowColor,
+      }),
     },
     interaction: {
       rotatable: true,
@@ -176,10 +180,26 @@ export const OPTIC_TYPES = {
       intersect({ origin, direction, optic }) {
         return intersectRayWithFiberFace(origin, direction, optic.position, optic.yaw)
       },
-      onHit({ hit, direction, optic, opticState }) {
+      onHit({ hit, direction, optic, opticState, beam }) {
         if (hit.surface !== 'input') {
           return {
             continueBeam: null,
+          }
+        }
+
+        const nextCoupling = computeFiberCoupling(hit, direction)
+        const currentCoupling = opticState?.coupling ?? 0
+
+        if (nextCoupling <= currentCoupling) {
+          return {
+            continueBeam: null,
+            opticStateById: {
+              [optic.id]: {
+                coupling: currentCoupling,
+                couplingColor: opticState?.couplingColor,
+                couplingGlowColor: opticState?.couplingGlowColor,
+              },
+            },
           }
         }
 
@@ -187,7 +207,9 @@ export const OPTIC_TYPES = {
           continueBeam: null,
           opticStateById: {
             [optic.id]: {
-              coupling: Math.max(opticState?.coupling ?? 0, computeFiberCoupling(hit, direction)),
+              coupling: nextCoupling,
+              couplingColor: beam.baseColor ?? '#2a6cff',
+              couplingGlowColor: beam.flowColor ?? '#80b3ff',
             },
           },
         }
