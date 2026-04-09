@@ -1,6 +1,6 @@
-import React, { useMemo, useRef, useState, useCallback } from 'react'
+import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react'
 import * as THREE from 'three'
-import { Canvas, useFrame } from '@react-three/fiber'
+import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { OrbitControls, Html, Line, Environment } from '@react-three/drei'
 
 
@@ -664,6 +664,20 @@ function Beam({ points }) {
   )
 }
 
+function Fit2DCamera({ board, enabled }) {
+  const { camera, size } = useThree()
+
+  useEffect(() => {
+    if (!enabled || !camera.isOrthographicCamera) return
+
+    const { width, depth } = getBoardSize(board)
+    camera.zoom = Math.min(size.width / width, size.height / depth)
+    camera.updateProjectionMatrix()
+  }, [board, camera, enabled, size.height, size.width])
+
+  return null
+}
+
 function OpticalScene({ is2D, level, opticYaws, onOpticYawChange }) {
   const [isDragging, setIsDragging] = useState(false)
 
@@ -689,6 +703,7 @@ function OpticalScene({ is2D, level, opticYaws, onOpticYawChange }) {
       <directionalLight position={[4, 8, 4]} intensity={1.2} castShadow />
       <Environment preset="city" />
 
+      <Fit2DCamera board={board} enabled={is2D} />
       <Table board={board} />
       <BreadboardHoles board={board} />
 
@@ -709,6 +724,7 @@ function OpticalScene({ is2D, level, opticYaws, onOpticYawChange }) {
         makeDefault
         enabled={!isDragging}
         enableRotate={!is2D}
+        enableZoom={!is2D}
         target={[0, 0, 0]}
         enablePan
         minDistance={4}
