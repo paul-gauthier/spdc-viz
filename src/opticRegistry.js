@@ -49,8 +49,9 @@ export const OPTIC_TYPES = {
       },
       onHit({ hit, direction }) {
         return {
-          kind: 'reflect',
-          nextDirection: reflectDir(direction, hit.normal),
+          continueBeam: {
+            direction: reflectDir(direction, hit.normal),
+          },
         }
       },
     },
@@ -79,7 +80,7 @@ export const OPTIC_TYPES = {
     render: {
       Body: FiberBody,
       opticRadius: FIBER_OPTIC_RADIUS,
-      getBodyProps: ({ coupling = 0 }) => ({ coupling }),
+      getBodyProps: ({ opticState = {} }) => ({ coupling: opticState.coupling ?? 0 }),
     },
     interaction: {
       rotatable: true,
@@ -90,11 +91,13 @@ export const OPTIC_TYPES = {
       intersect({ origin, direction, optic }) {
         return intersectRayWithFiberFace(origin, direction, optic.position, optic.yaw)
       },
-      onHit({ hit, direction, optic }) {
+      onHit({ hit, direction, optic, opticState }) {
         return {
-          kind: 'terminate',
-          couplingByOpticId: {
-            [optic.id]: computeFiberCoupling(hit, direction),
+          continueBeam: null,
+          opticStateById: {
+            [optic.id]: {
+              coupling: Math.max(opticState?.coupling ?? 0, computeFiberCoupling(hit, direction)),
+            },
           },
         }
       },

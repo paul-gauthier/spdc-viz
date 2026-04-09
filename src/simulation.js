@@ -3,18 +3,64 @@ export * from './simulationCore'
 import { BEAM_TRACE_EPSILON, yawToDirection } from './simulationCore'
 import { getOpticType } from './opticRegistry'
 
-function mergeCouplingByOpticId(target, source = {}) {
-  for (const [opticId, coupling] of Object.entries(source)) {
-    target[opticId] = Math.max(target[opticId] ?? 0, coupling)
+const DEFAULT_MAX_TRACED_BEAMS = 64
+
+function mergeOpticStateById(target, source = {}) {
+  for (const [opticId, partialState] of Object.entries(source)) {
+    target[opticId] = {
+      ...(target[opticId] ?? {}),
+      ...(partialState ?? {}),
+    }
   }
 }
 
-export function traceBeam({ origin, direction, elements, tailLength = 8, maxBounces = 8 }) {
+function cloneOpticStateById(opticStateById = {}) {
+  return Object.fromEntries(
+    Object.entries(opticStateById).map(([opticId, opticState]) => [
+      opticId,
+      { ...(opticState ?? {}) },
+    ]),
+  )
+}
+
+function buildCouplingByOpticId(opticStateById = {}) {
+  return Object.fromEntries(
+    Object.entries(opticStateById)
+      .filter(([, opticState]) => typeof opticState?.coupling === 'number')
+      .map(([opticId, opticState]) => [opticId, opticState.coupling]),
+  )
+}
+
+function normalizeSpawnedBeam(spawnedBeam, parentBeam, index, origin, direction) {
+  const nextOrigin = (spawnedBeam.origin ?? origin).clone()
+  const nextDirection = (spawnedBeam.direction ?? direction).clone().normalize()
+
+  return {
+    ...parentBeam,
+    ...spawnedBeam,
+    id: spawnedBeam.id ?? `${parentBeam.id}-spawn${index}`,
+    origin: nextOrigin,
+    direction: nextDirection,
+  }
+}
+
+export function traceBeam({
+  beam = { id: 'beam' },
+  origin,
+  direction,
+  elements,
+  tailLength = 8,
+  maxBounces = 8,
+  initialOpticStateById = {},
+}) {
   const path = [origin.clone()]
-  const couplingByOpticId = {}
+  const opticStateById = cloneOpticStateById(initialOpticStateById)
+  const effects = []
+  const spawnedBeams = []
 
   let rayOrigin = origin.clone()
   let rayDirection = direction.clone().normalize()
+  let spawnedBeamCount = 0
 
   for (let bounce = 0; bounce < maxBounces; bounce += 1) {
     let closestHit = null
@@ -46,38 +92,83 @@ export function traceBeam({ origin, direction, elements, tailLength = 8, maxBoun
       hit: closestHit,
       direction: rayDirection,
       optic: closestElement,
+      beam,
+      opticState: opticStateById[closestElement.id] ?? {},
+      opticStateById,
     })
 
-    mergeCouplingByOpticId(couplingByOpticId, outcome?.couplingByOpticId)
+    mergeOpticStateById(opticStateById, outcome?.opticStateById)
+    effects.push(...(outcome?.effects ?? []))
 
-    if (outcome?.kind === 'terminate') {
-      return { path, couplingByOpticId }
+    for (const spawnedBeam of outcome?.spawnedBeams ?? []) {
+      spawnedBeamCount += 1
+      spawnedBeams.push(
+        normalizeSpawnedBeam(spawnedBeam, beam, spawnedBeamCount, closestHit.point, rayDirection),
+      )
     }
 
-    if (outcome?.kind !== 'reflect' || !outcome.nextDirection) break
+    if (outcome?.continueBeam === null) {
+      return {
+        path,
+        opticStateById,
+        couplingByOpticId: buildCouplingByOpticId(opticStateById),
+        effects,
+        spawnedBeams,
+      }
+    }
 
-    rayDirection = outcome.nextDirection.clone().normalize()
-    rayOrigin = closestHit.point.clone().add(rayDirection.clone().multiplyScalar(BEAM_TRACE_EPSILON))
+    if (!outcome?.continueBeam?.direction) break
+
+    rayDirection = outcome.continueBeam.direction.clone().normalize()
+    rayOrigin = (outcome.continueBeam.origin ?? closestHit.point)
+      .clone()
+      .add(rayDirection.clone().multiplyScalar(BEAM_TRACE_EPSILON))
   }
 
   path.push(path[path.length - 1].clone().add(rayDirection.clone().multiplyScalar(tailLength)))
-  return { path, couplingByOpticId }
+  return {
+    path,
+    opticStateById,
+    couplingByOpticId: buildCouplingByOpticId(opticStateById),
+    effects,
+    spawnedBeams,
+  }
 }
 
-export function traceAllBeams({ beams = [], opticsById, elements }) {
+export function traceAllBeams({
+  beams = [],
+  opticsById,
+  elements,
+  maxTracedBeams = DEFAULT_MAX_TRACED_BEAMS,
+}) {
   const tracedBeams = []
-  const couplingByOpticId = {}
+  const opticStateById = {}
+  const effects = []
 
-  for (const beam of beams) {
-    const source = opticsById[beam.source]
-    if (!source) continue
+  const beamQueue = beams
+    .map((beam) => {
+      const source = opticsById[beam.source]
+      if (!source) return null
+
+      return {
+        ...beam,
+        origin: source.beamPosition.clone(),
+        direction: yawToDirection(source.yaw),
+      }
+    })
+    .filter(Boolean)
+
+  while (beamQueue.length > 0 && tracedBeams.length < maxTracedBeams) {
+    const beam = beamQueue.shift()
 
     const result = traceBeam({
-      origin: source.beamPosition,
-      direction: yawToDirection(source.yaw),
+      beam,
+      origin: beam.origin,
+      direction: beam.direction,
       elements,
       tailLength: beam.tailLength,
       maxBounces: beam.maxBounces,
+      initialOpticStateById: opticStateById,
     })
 
     tracedBeams.push({
@@ -86,8 +177,15 @@ export function traceAllBeams({ beams = [], opticsById, elements }) {
       couplingByOpticId: result.couplingByOpticId,
     })
 
-    mergeCouplingByOpticId(couplingByOpticId, result.couplingByOpticId)
+    mergeOpticStateById(opticStateById, result.opticStateById)
+    effects.push(...result.effects)
+    beamQueue.push(...result.spawnedBeams)
   }
 
-  return { beams: tracedBeams, couplingByOpticId }
+  return {
+    beams: tracedBeams,
+    opticStateById,
+    couplingByOpticId: buildCouplingByOpticId(opticStateById),
+    effects,
+  }
 }
