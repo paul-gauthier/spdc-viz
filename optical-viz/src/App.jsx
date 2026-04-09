@@ -469,7 +469,7 @@ function Beam({ points }) {
     <group>
       <Line
         points={linePoints}
-        color="#ff2a2a"
+        color="#2a6cff"
         lineWidth={3}
         transparent
         opacity={0.35}
@@ -477,7 +477,7 @@ function Beam({ points }) {
       <Line
         ref={flowRef}
         points={linePoints}
-        color="#ff8080"
+        color="#80b3ff"
         lineWidth={2}
         transparent
         opacity={0.95}
