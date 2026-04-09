@@ -13,7 +13,7 @@ export function Beam({ points, baseColor = '#2a6cff', flowColor = '#80b3ff' }) {
 
   useFrame((_state, delta) => {
     if (flowRef.current?.material) {
-      flowRef.current.material.dashOffset -= delta * 2
+      flowRef.current.material.dashOffset -= delta
     }
   })
 
@@ -36,9 +36,9 @@ export function Beam({ points, baseColor = '#2a6cff', flowColor = '#80b3ff' }) {
         transparent
         opacity={0.95}
         dashed
-        dashScale={12}
-        dashSize={0.6}
-        gapSize={0.35}
+        dashScale={8}
+        dashSize={1.6}
+        gapSize={0.2}
       />
     </group>
   )
