@@ -99,27 +99,43 @@ function FiberFill({ power }) {
   if (fill <= 0) return null
 
   const shellOffset = 0.006
+  const bodyInset = 0.002
+  const faceOffset = 0.001
+  const faceThickness = 0.014
   const fillLength = FIBER_LENGTH * fill
+  const bodyLength = Math.max(0, fillLength - bodyInset)
   const endRadius = THREE.MathUtils.lerp(
     FIBER_NEGATIVE_X_FACE_RADIUS + shellOffset,
     FIBER_POSITIVE_X_FACE_RADIUS + shellOffset,
     fill,
   )
-  const xCenter = -FIBER_LENGTH / 2 + fillLength / 2
+  const xCenter = -FIBER_LENGTH / 2 + bodyInset + bodyLength / 2
+  const faceX = -FIBER_LENGTH / 2 - faceOffset - faceThickness / 2
+  const faceRadius = FIBER_NEGATIVE_X_FACE_RADIUS + shellOffset
 
   return (
-    <mesh position={[xCenter, 0, 0]} rotation={[0, 0, Math.PI / 2]} castShadow>
-      <cylinderGeometry
-        args={[FIBER_NEGATIVE_X_FACE_RADIUS + shellOffset, endRadius, fillLength, 32]}
-      />
-      <meshStandardMaterial
-        color="#38bdf8"
-        emissive="#0ea5e9"
-        emissiveIntensity={0.4 + fill * 1.2}
-        transparent
-        opacity={0.85}
-      />
-    </mesh>
+    <>
+      {bodyLength > 0 ? (
+        <mesh position={[xCenter, 0, 0]} rotation={[0, 0, Math.PI / 2]} castShadow>
+          <cylinderGeometry args={[faceRadius, endRadius, bodyLength, 32]} />
+          <meshStandardMaterial
+            color="#38bdf8"
+            emissive="#0ea5e9"
+            emissiveIntensity={0.4 + fill * 1.2}
+            transparent
+            opacity={0.85}
+          />
+        </mesh>
+      ) : null}
+      <mesh position={[faceX, 0, 0]} rotation={[0, 0, Math.PI / 2]} castShadow>
+        <cylinderGeometry args={[faceRadius, faceRadius, faceThickness, 32]} />
+        <meshStandardMaterial
+          color="#38bdf8"
+          emissive="#0ea5e9"
+          emissiveIntensity={0.6 + fill * 1.4}
+        />
+      </mesh>
+    </>
   )
 }
 
