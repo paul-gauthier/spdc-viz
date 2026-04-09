@@ -13,7 +13,7 @@ export function Beam({ points, baseColor = '#2a6cff', flowColor = '#80b3ff' }) {
 
   useFrame((_state, delta) => {
     if (flowRef.current?.material) {
-      flowRef.current.material.dashOffset -= delta
+      flowRef.current.material.dashOffset -= delta * 2
     }
   })
 
