@@ -328,6 +328,29 @@ function Lens({ position, yaw = 0 }) {
   )
 }
 
+function MirrorBody() {
+  return (
+    <mesh rotation={[0, 0, Math.PI / 2]} castShadow>
+      <cylinderGeometry args={[MIRROR_RADIUS, MIRROR_RADIUS, 0.05, 32]} />
+      <meshStandardMaterial attach="material-0" color="#888" metalness={0.8} roughness={0.3} />
+      <meshStandardMaterial
+        attach="material-1"
+        color="#f0f2f5"
+        metalness={1}
+        roughness={0.02}
+        envMapIntensity={3}
+      />
+      <meshStandardMaterial
+        attach="material-2"
+        color="#f0f2f5"
+        metalness={1}
+        roughness={0.02}
+        envMapIntensity={3}
+      />
+    </mesh>
+  )
+}
+
 function FiberFill({ power }) {
   const fill = clamp01(power)
 
@@ -358,25 +381,32 @@ function FiberFill({ power }) {
   )
 }
 
-function FiberCoupler({ position, yaw = 0, coupling = 0 }) {
+function FiberBody({ coupling = 0 }) {
   const power = clamp01(coupling)
 
   return (
-    <OpticMount
-      position={position}
-      yaw={yaw}
-      label="Fiber"
-      geometryArgs={[FIBER_NEGATIVE_X_FACE_RADIUS, FIBER_POSITIVE_X_FACE_RADIUS, FIBER_LENGTH, 32]}
-      opticMaterial={<meshStandardMaterial color="#555" metalness={0.5} roughness={0.5} />}
-    >
+    <>
+      <mesh rotation={[0, 0, Math.PI / 2]} castShadow>
+        <cylinderGeometry args={[FIBER_NEGATIVE_X_FACE_RADIUS, FIBER_POSITIVE_X_FACE_RADIUS, FIBER_LENGTH, 32]} />
+        <meshStandardMaterial color="#555" metalness={0.5} roughness={0.5} />
+      </mesh>
       <FiberFill power={power} />
-    </OpticMount>
+    </>
   )
 }
 
 /* ───── interactive mirror ───── */
 
-function InteractiveMirror({ position, yaw, onYawChange, name, onDragStart, onDragEnd }) {
+function RotatableOpticMount({
+  position,
+  yaw,
+  onYawChange,
+  name,
+  onDragStart,
+  onDragEnd,
+  opticRadius = MIRROR_RADIUS,
+  children,
+}) {
   const [hovered, setHovered] = useState(false)
   const [dragging, setDragging] = useState(false)
   const dragRef = useRef(null)
@@ -449,8 +479,7 @@ function InteractiveMirror({ position, yaw, onYawChange, name, onDragStart, onDr
     [dragging],
   )
 
-  const opticR = MIRROR_RADIUS
-  const postH = POST_HEIGHT - opticR
+  const postH = POST_HEIGHT - opticRadius
   const ringColor = dragging ? '#ffdd00' : hovered ? '#ffaa00' : '#ff8800'
 
   return (
@@ -497,36 +526,48 @@ function InteractiveMirror({ position, yaw, onYawChange, name, onDragStart, onDr
         </group>
       </group>
 
-      {/* mirror disc */}
-      <group rotation={[0, yaw, 0]}>
-        <mesh rotation={[0, 0, Math.PI / 2]} castShadow>
-          <cylinderGeometry args={[opticR, opticR, 0.05, 32]} />
-          <meshStandardMaterial attach="material-0" color="#888" metalness={0.8} roughness={0.3} />
-          <meshStandardMaterial
-            attach="material-1"
-            color="#f0f2f5"
-            metalness={1}
-            roughness={0.02}
-            envMapIntensity={3}
-          />
-          <meshStandardMaterial
-            attach="material-2"
-            color="#f0f2f5"
-            metalness={1}
-            roughness={0.02}
-            envMapIntensity={3}
-          />
-        </mesh>
-      </group>
+      <group rotation={[0, yaw, 0]}>{children}</group>
 
       {/* post */}
-      <mesh position={[0, -(POST_HEIGHT + opticR) / 2, 0]} castShadow>
+      <mesh position={[0, -(POST_HEIGHT + opticRadius) / 2, 0]} castShadow>
         <cylinderGeometry args={[0.25, 0.25, postH, 32]} />
         <meshStandardMaterial color="#d4d4d8" metalness={0.9} roughness={0.18} />
       </mesh>
 
       <Label position={[0.18, 0.32, 0.18]}>{name}</Label>
     </group>
+  )
+}
+
+function InteractiveMirror({ position, yaw, onYawChange, name, onDragStart, onDragEnd }) {
+  return (
+    <RotatableOpticMount
+      position={position}
+      yaw={yaw}
+      onYawChange={onYawChange}
+      name={name}
+      onDragStart={onDragStart}
+      onDragEnd={onDragEnd}
+      opticRadius={MIRROR_RADIUS}
+    >
+      <MirrorBody />
+    </RotatableOpticMount>
+  )
+}
+
+function InteractiveFiberCoupler({ position, yaw = 0, coupling = 0, onYawChange, onDragStart, onDragEnd }) {
+  return (
+    <RotatableOpticMount
+      position={position}
+      yaw={yaw}
+      onYawChange={onYawChange}
+      name="Fiber"
+      onDragStart={onDragStart}
+      onDragEnd={onDragEnd}
+      opticRadius={Math.max(FIBER_NEGATIVE_X_FACE_RADIUS, FIBER_POSITIVE_X_FACE_RADIUS)}
+    >
+      <FiberBody coupling={coupling} />
+    </RotatableOpticMount>
   )
 }
 
@@ -548,7 +589,16 @@ function Optic({ optic, coupling = 0, onOpticYawChange, onDragStart, onDragEnd }
     case 'lens':
       return <Lens position={optic.renderPosition} yaw={optic.yaw} />
     case 'fiber':
-      return <FiberCoupler position={optic.renderPosition} yaw={optic.yaw} coupling={coupling} />
+      return (
+        <InteractiveFiberCoupler
+          position={optic.renderPosition}
+          yaw={optic.yaw}
+          coupling={coupling}
+          onYawChange={(yaw) => onOpticYawChange(optic.id, yaw)}
+          onDragStart={onDragStart}
+          onDragEnd={onDragEnd}
+        />
+      )
     default:
       return null
   }
