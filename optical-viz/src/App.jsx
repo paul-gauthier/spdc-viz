@@ -334,6 +334,7 @@ function Lens({ position, yaw = 0 }) {
       position={position}
       yaw={yaw}
       label="Lens"
+      geometryArgs={[0.5, 0.5, 0.18, 32]}
       opticMaterial={
         <meshStandardMaterial color="#88bbff" transparent opacity={0.45} metalness={0.1} roughness={0.05} />
       }
@@ -344,7 +345,7 @@ function Lens({ position, yaw = 0 }) {
 function MirrorBody() {
   return (
     <mesh rotation={[0, 0, Math.PI / 2]} castShadow>
-      <cylinderGeometry args={[MIRROR_RADIUS, MIRROR_RADIUS, 0.05, 32]} />
+      <cylinderGeometry args={[MIRROR_RADIUS, MIRROR_RADIUS, 0.18, 32]} />
       <meshStandardMaterial attach="material-0" color="#888" metalness={0.8} roughness={0.3} />
       <meshStandardMaterial
         attach="material-1"
