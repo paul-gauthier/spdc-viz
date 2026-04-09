@@ -177,6 +177,12 @@ export const OPTIC_TYPES = {
         return intersectRayWithFiberFace(origin, direction, optic.position, optic.yaw)
       },
       onHit({ hit, direction, optic, opticState }) {
+        if (hit.surface !== 'input') {
+          return {
+            continueBeam: null,
+          }
+        }
+
         return {
           continueBeam: null,
           opticStateById: {

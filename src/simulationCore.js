@@ -87,36 +87,81 @@ export function computeSpdcOpeningAngle(direction, yaw, optic = {}) {
 
 export function intersectRayWithFiberFace(origin, dir, center, yaw) {
   const axis = yawToDirection(yaw)
-  const denom = dir.dot(axis)
+  const localOrigin = origin.clone().sub(center).applyAxisAngle(Y_AXIS, -yaw)
+  const localDir = dir.clone().applyAxisAngle(Y_AXIS, -yaw)
+  const halfLength = FIBER_LENGTH / 2
+  const minX = -halfLength
+  const maxX = halfLength
+  const sideSlope = (FIBER_POSITIVE_X_FACE_RADIUS - FIBER_NEGATIVE_X_FACE_RADIUS) / FIBER_LENGTH
+  const sideIntercept = (FIBER_NEGATIVE_X_FACE_RADIUS + FIBER_POSITIVE_X_FACE_RADIUS) / 2
+  const candidates = []
 
-  if (Math.abs(denom) < 1e-6) return null
+  const pushCapHit = (capX, faceRadius, surface, inwardAxis) => {
+    if (Math.abs(localDir.x) < 1e-6) return
 
-  const faceConfigs = [
-    { offset: -FIBER_LENGTH / 2, radius: FIBER_NEGATIVE_X_FACE_RADIUS, inwardAxis: axis.clone() },
-    { offset: FIBER_LENGTH / 2, radius: FIBER_POSITIVE_X_FACE_RADIUS, inwardAxis: axis.clone().multiplyScalar(-1) },
-  ]
+    const t = (capX - localOrigin.x) / localDir.x
+    if (t <= 0) return
 
-  let closestHit = null
-  let closestDistance = Infinity
+    const localPoint = localOrigin.clone().add(localDir.clone().multiplyScalar(t))
+    const radialDistance = Math.hypot(localPoint.y, localPoint.z)
 
-  for (const { offset, radius, inwardAxis } of faceConfigs) {
-    const faceCenter = center.clone().add(axis.clone().multiplyScalar(offset))
-    const t = new THREE.Vector3().subVectors(faceCenter, origin).dot(axis) / denom
-    if (t <= 0) continue
+    if (radialDistance > faceRadius) return
 
-    const point = origin.clone().add(dir.clone().multiplyScalar(t))
-    const radialOffset = new THREE.Vector3().subVectors(point, faceCenter)
-    radialOffset.sub(axis.clone().multiplyScalar(radialOffset.dot(axis)))
-    const radialDistance = radialOffset.length()
+    candidates.push({
+      t,
+      point: origin.clone().add(dir.clone().multiplyScalar(t)),
+      surface,
+      faceRadius,
+      inwardAxis,
+      radialDistance,
+    })
+  }
 
-    if (radialDistance > radius) continue
+  pushCapHit(minX, FIBER_NEGATIVE_X_FACE_RADIUS, 'input', axis.clone())
+  pushCapHit(maxX, FIBER_POSITIVE_X_FACE_RADIUS, 'output', axis.clone().multiplyScalar(-1))
 
-    if (t < closestDistance) {
-      closestHit = { point, faceRadius: radius, inwardAxis, radialDistance }
-      closestDistance = t
+  const radialDirSq = localDir.y * localDir.y + localDir.z * localDir.z
+  const radialOriginDotDir = localOrigin.y * localDir.y + localOrigin.z * localDir.z
+  const radiusAtOrigin = sideSlope * localOrigin.x + sideIntercept
+  const radiusSlope = sideSlope * localDir.x
+  const a = radialDirSq - radiusSlope * radiusSlope
+  const b = 2 * (radialOriginDotDir - radiusAtOrigin * radiusSlope)
+  const c =
+    localOrigin.y * localOrigin.y +
+    localOrigin.z * localOrigin.z -
+    radiusAtOrigin * radiusAtOrigin
+
+  const sideTs = []
+
+  if (Math.abs(a) < 1e-6) {
+    if (Math.abs(b) >= 1e-6) sideTs.push(-c / b)
+  } else {
+    const discriminant = b * b - 4 * a * c
+
+    if (discriminant >= 0) {
+      const root = Math.sqrt(discriminant)
+      sideTs.push((-b - root) / (2 * a), (-b + root) / (2 * a))
     }
   }
 
+  for (const t of sideTs) {
+    if (t <= 0) continue
+
+    const localPoint = localOrigin.clone().add(localDir.clone().multiplyScalar(t))
+    if (localPoint.x < minX - 1e-6 || localPoint.x > maxX + 1e-6) continue
+
+    candidates.push({
+      t,
+      point: origin.clone().add(dir.clone().multiplyScalar(t)),
+      surface: 'side',
+    })
+  }
+
+  if (candidates.length === 0) return null
+
+  candidates.sort((aHit, bHit) => aHit.t - bHit.t)
+
+  const { t: _t, ...closestHit } = candidates[0]
   return closestHit
 }
 
