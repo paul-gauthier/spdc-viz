@@ -55,7 +55,7 @@ export const level2 = {
     {
       id: 'laser',
       type: 'laser',
-      hole: [5, 6],
+      hole: [4, 6],
       yaw: Math.PI,
       beamExitOffset: [0.25, 0, 0],
     },
