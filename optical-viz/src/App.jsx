@@ -85,14 +85,16 @@ function Laser({ position }) {
 }
 
 function OpticMount({ position, rotationY = 0, opticMaterial, label, geometryArgs = [0.5, 0.5, 0.05, 32] }) {
+  const opticRadius = Math.max(geometryArgs[0], geometryArgs[1])
+  const postHeight = POST_HEIGHT - opticRadius
   return (
     <group position={position} rotation={[0, rotationY, 0]}>
       <mesh rotation={[0, 0, Math.PI / 2]} castShadow>
         <cylinderGeometry args={geometryArgs} />
         {opticMaterial}
       </mesh>
-      <mesh position={[0, -POST_HEIGHT / 2, 0]} castShadow>
-        <cylinderGeometry args={[0.04, 0.04, POST_HEIGHT, 24]} />
+      <mesh position={[0, -(POST_HEIGHT + opticRadius) / 2, 0]} castShadow>
+        <cylinderGeometry args={[0.04, 0.04, postHeight, 24]} />
         <meshStandardMaterial color="#777" metalness={0.7} roughness={0.35} />
       </mesh>
       <Label position={[0.18, 0.32, 0.18]}>{label}</Label>
