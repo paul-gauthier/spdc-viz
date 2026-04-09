@@ -114,7 +114,11 @@ function Fit2DCamera({ board, enabled }) {
     if (!enabled || !camera.isOrthographicCamera) return
 
     const { width, depth } = getBoardSize(board)
-    camera.zoom = Math.min(size.width / width, size.height / depth)
+    const margin = board.pitch * 0.6
+    const paddedWidth = width + margin * 2
+    const paddedDepth = depth + margin * 2
+
+    camera.zoom = Math.min(size.width / paddedWidth, size.height / paddedDepth)
     camera.updateProjectionMatrix()
   }, [board, camera, enabled, size.height, size.width])
 
