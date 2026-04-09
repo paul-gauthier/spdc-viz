@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react'
+import React, { useCallback, useRef, useState } from 'react'
 import { Canvas } from '@react-three/fiber'
 import { LEVELS, buildInitialOpticYaws } from './levels'
 import { OpticalScene } from './scene'
@@ -9,6 +9,11 @@ export default function App() {
   const level = LEVELS[DEFAULT_LEVEL_ID]
   const [is2D, setIs2D] = useState(false)
   const [opticYaws, setOpticYaws] = useState(() => buildInitialOpticYaws(level))
+  const saved3DViewRef = useRef(null)
+
+  const handleSave3DView = useCallback((view) => {
+    saved3DViewRef.current = view
+  }, [])
 
   const handleOpticYawChange = useCallback((id, yaw) => {
     setOpticYaws((current) => ({
@@ -74,6 +79,8 @@ export default function App() {
           level={level}
           opticYaws={opticYaws}
           onOpticYawChange={handleOpticYawChange}
+          saved3DView={saved3DViewRef.current}
+          onSave3DView={handleSave3DView}
         />
       </Canvas>
       <div

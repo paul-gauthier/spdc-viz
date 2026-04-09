@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { useFrame, useThree } from '@react-three/fiber'
 import { Environment, Line, OrbitControls } from '@react-three/drei'
@@ -121,11 +121,26 @@ function Fit2DCamera({ board, enabled }) {
   return null
 }
 
-function Fit3DCamera({ board, enabled, controlsRef }) {
+function Fit3DCamera({ board, enabled, controlsRef, savedView }) {
   const { camera, size } = useThree()
 
   useEffect(() => {
     if (!enabled || !camera.isPerspectiveCamera || size.width === 0 || size.height === 0) return
+
+    if (savedView?.position && savedView?.target) {
+      camera.position.fromArray(savedView.position)
+      camera.near = 0.1
+      camera.updateProjectionMatrix()
+
+      if (controlsRef.current) {
+        controlsRef.current.target.fromArray(savedView.target)
+        controlsRef.current.update()
+        return
+      }
+
+      camera.lookAt(new THREE.Vector3().fromArray(savedView.target))
+      return
+    }
 
     const { width, depth } = getBoardSize(board)
     const target = new THREE.Vector3(0, POST_HEIGHT / 2, 0)
@@ -172,7 +187,7 @@ function Fit3DCamera({ board, enabled, controlsRef }) {
     }
 
     camera.lookAt(target)
-  }, [board, camera, controlsRef, enabled, size.height, size.width])
+  }, [board, camera, controlsRef, enabled, savedView, size.height, size.width])
 
   return null
 }
@@ -201,9 +216,32 @@ function Optic({ optic, opticState = {}, onOpticYawChange, onDragStart, onDragEn
   )
 }
 
-export function OpticalScene({ is2D, level, opticYaws, onOpticYawChange }) {
+export function OpticalScene({
+  is2D,
+  level,
+  opticYaws,
+  onOpticYawChange,
+  saved3DView,
+  onSave3DView,
+}) {
   const [isDragging, setIsDragging] = useState(false)
   const controlsRef = useRef(null)
+  const camera = useThree((state) => state.camera)
+
+  const saveCurrent3DView = useCallback(() => {
+    if (is2D || !camera.isPerspectiveCamera) return
+
+    onSave3DView?.({
+      position: camera.position.toArray(),
+      target: controlsRef.current?.target?.toArray?.() ?? [0, POST_HEIGHT / 2, 0],
+    })
+  }, [camera, is2D, onSave3DView])
+
+  useEffect(() => {
+    return () => {
+      if (!is2D) saveCurrent3DView()
+    }
+  }, [is2D, saveCurrent3DView])
 
   const resolvedLevel = useMemo(() => resolveLevel(level, opticYaws), [level, opticYaws])
   const { board, optics, opticsById, beams } = resolvedLevel
@@ -225,7 +263,7 @@ export function OpticalScene({ is2D, level, opticYaws, onOpticYawChange }) {
       <Environment preset="city" />
 
       <Fit2DCamera board={board} enabled={is2D} />
-      <Fit3DCamera board={board} enabled={!is2D} controlsRef={controlsRef} />
+      <Fit3DCamera board={board} enabled={!is2D} controlsRef={controlsRef} savedView={saved3DView} />
       <Table board={board} />
       <BreadboardHoles board={board} />
 
@@ -261,6 +299,7 @@ export function OpticalScene({ is2D, level, opticYaws, onOpticYawChange }) {
         ref={controlsRef}
         makeDefault
         enabled={!isDragging}
+        onEnd={saveCurrent3DView}
         enableRotate={!is2D}
         enableZoom={!is2D}
         target={[0, POST_HEIGHT / 2, 0]}
