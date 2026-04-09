@@ -78,6 +78,35 @@ export function BreadboardHoles({ board }) {
   return <group>{dots}</group>
 }
 
+function SpdcConeEffect({ effect }) {
+  const { axis, color = '#ef4444', length = 4, openingAngle = 0, opacity = 0.18, origin } = effect
+  const radius = length * Math.tan(openingAngle)
+
+  const { position, quaternion } = useMemo(() => {
+    const direction = axis.clone().normalize()
+
+    return {
+      position: origin.clone().add(direction.clone().multiplyScalar(length / 2)),
+      quaternion: new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), direction),
+    }
+  }, [axis, length, origin])
+
+  if (!(length > 0) || !(radius > 0)) return null
+
+  return (
+    <mesh position={[position.x, position.y, position.z]} quaternion={quaternion}>
+      <cylinderGeometry args={[radius, 0, length, 48, 1, true]} />
+      <meshStandardMaterial
+        color={color}
+        transparent
+        opacity={opacity}
+        depthWrite={false}
+        side={THREE.DoubleSide}
+      />
+    </mesh>
+  )
+}
+
 function Fit2DCamera({ board, enabled }) {
   const { camera, size } = useThree()
 
@@ -172,7 +201,7 @@ function Optic({ optic, opticState = {}, onOpticYawChange, onDragStart, onDragEn
   )
 }
 
-export function OpticalScene({ is2D, level, opticYaws, onOpticYawChange }) {
+export function OpticalScene({ is2D, level, opticYaws, onOpticYawChange, showSpdcCones = true }) {
   const [isDragging, setIsDragging] = useState(false)
   const controlsRef = useRef(null)
 
@@ -219,6 +248,14 @@ export function OpticalScene({ is2D, level, opticYaws, onOpticYawChange }) {
           flowColor={beam.flowColor}
         />
       ))}
+
+      {!is2D && showSpdcCones
+        ? beamResult.effects
+            .filter((effect) => effect.type === 'spdcCone')
+            .map((effect, index) => (
+              <SpdcConeEffect key={`${effect.id ?? 'spdc-cone'}-${index}`} effect={effect} />
+            ))
+        : null}
 
       <OrbitControls
         ref={controlsRef}

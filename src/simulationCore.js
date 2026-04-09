@@ -50,8 +50,8 @@ export function mirrorNormal(yaw) {
   return yawToDirection(yaw)
 }
 
-export function intersectRayWithMirror(origin, dir, center, yaw) {
-  const normal = mirrorNormal(yaw)
+export function intersectRayWithDisk(origin, dir, center, yaw, radius) {
+  const normal = yawToDirection(yaw)
   const denom = dir.dot(normal)
 
   if (Math.abs(denom) < 1e-6) return null
@@ -60,9 +60,27 @@ export function intersectRayWithMirror(origin, dir, center, yaw) {
   if (t <= 0) return null
 
   const point = origin.clone().add(dir.clone().multiplyScalar(t))
-  if (point.distanceTo(center) > MIRROR_RADIUS) return null
+  if (point.distanceTo(center) > radius) return null
 
   return { point, normal }
+}
+
+export function intersectRayWithMirror(origin, dir, center, yaw) {
+  return intersectRayWithDisk(origin, dir, center, yaw, MIRROR_RADIUS)
+}
+
+export function angleBetweenDirectionAndOpticNormal(direction, yaw) {
+  const normal = yawToDirection(yaw)
+  const alignment = THREE.MathUtils.clamp(Math.abs(direction.clone().normalize().dot(normal)), 0, 1)
+  return Math.acos(alignment)
+}
+
+export function computeSpdcOpeningAngle(direction, yaw, optic = {}) {
+  const baseOpeningAngle = optic.baseOpeningAngle ?? 0
+  const openingAngleScale = optic.openingAngleScale ?? 1
+  const incidenceAngle = angleBetweenDirectionAndOpticNormal(direction, yaw)
+
+  return THREE.MathUtils.clamp(baseOpeningAngle + incidenceAngle * openingAngleScale, 0, Math.PI / 2 - 1e-3)
 }
 
 export function intersectRayWithFiberFace(origin, dir, center, yaw) {

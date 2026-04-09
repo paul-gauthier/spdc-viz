@@ -8,6 +8,7 @@ const DEFAULT_LEVEL_ID = 'level1'
 export default function App() {
   const level = LEVELS[DEFAULT_LEVEL_ID]
   const [is2D, setIs2D] = useState(false)
+  const [showSpdcCones, setShowSpdcCones] = useState(true)
   const [opticYaws, setOpticYaws] = useState(() => buildInitialOpticYaws(level))
 
   const handleOpticYawChange = useCallback((id, yaw) => {
@@ -54,25 +55,47 @@ export default function App() {
           level={level}
           opticYaws={opticYaws}
           onOpticYawChange={handleOpticYawChange}
+          showSpdcCones={showSpdcCones}
         />
       </Canvas>
-      <button
-        onClick={() => setIs2D((v) => !v)}
+      <div
         style={{
           position: 'absolute',
           top: 12,
           right: 12,
-          padding: '6px 14px',
-          background: 'rgba(255,255,255,0.92)',
-          border: '1px solid #ccc',
-          borderRadius: 6,
-          fontSize: 13,
-          cursor: 'pointer',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 8,
           zIndex: 10,
         }}
       >
-        {is2D ? '▭ 2D' : '⬡ 3D'}
-      </button>
+        <button
+          onClick={() => setShowSpdcCones((value) => !value)}
+          style={{
+            padding: '6px 14px',
+            background: 'rgba(255,255,255,0.92)',
+            border: '1px solid #ccc',
+            borderRadius: 6,
+            fontSize: 13,
+            cursor: 'pointer',
+          }}
+        >
+          {showSpdcCones ? '◉ Cone' : '◌ Cone'}
+        </button>
+        <button
+          onClick={() => setIs2D((v) => !v)}
+          style={{
+            padding: '6px 14px',
+            background: 'rgba(255,255,255,0.92)',
+            border: '1px solid #ccc',
+            borderRadius: 6,
+            fontSize: 13,
+            cursor: 'pointer',
+          }}
+        >
+          {is2D ? '▭ 2D' : '⬡ 3D'}
+        </button>
+      </div>
     </div>
   )
 }
