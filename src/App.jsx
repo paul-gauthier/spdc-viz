@@ -17,6 +17,26 @@ export default function App() {
     }))
   }, [])
 
+  const handleReset = useCallback(() => {
+    setOpticYaws(buildInitialOpticYaws(level))
+  }, [level])
+
+  const handleJitter = useCallback(() => {
+    const initialOpticYaws = buildInitialOpticYaws(level)
+    const jitterAmount = 0.15
+
+    setOpticYaws((current) =>
+      Object.fromEntries(
+        level.optics.map((optic) => {
+          const baseYaw = current[optic.id] ?? initialOpticYaws[optic.id] ?? 0
+          const nextYaw = baseYaw + (Math.random() * 2 - 1) * jitterAmount
+
+          return [optic.id, Math.atan2(Math.sin(nextYaw), Math.cos(nextYaw))]
+        }),
+      ),
+    )
+  }, [level])
+
   return (
     <div
       onContextMenu={(e) => e.preventDefault()}
@@ -67,6 +87,32 @@ export default function App() {
           zIndex: 10,
         }}
       >
+        <button
+          onClick={handleReset}
+          style={{
+            padding: '6px 14px',
+            background: 'rgba(255,255,255,0.92)',
+            border: '1px solid #ccc',
+            borderRadius: 6,
+            fontSize: 13,
+            cursor: 'pointer',
+          }}
+        >
+          Reset
+        </button>
+        <button
+          onClick={handleJitter}
+          style={{
+            padding: '6px 14px',
+            background: 'rgba(255,255,255,0.92)',
+            border: '1px solid #ccc',
+            borderRadius: 6,
+            fontSize: 13,
+            cursor: 'pointer',
+          }}
+        >
+          Jitter
+        </button>
         <button
           onClick={() => setIs2D((v) => !v)}
           style={{
