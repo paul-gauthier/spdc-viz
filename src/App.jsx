@@ -167,33 +167,26 @@ export default function App() {
               <div
                 key={meter.id}
                 style={{
-                  minWidth: 120,
-                  padding: '6px 10px',
+                  padding: '6px 14px',
                   background: 'rgba(255,255,255,0.92)',
                   border: '1px solid #ccc',
                   borderRadius: 6,
-                  fontSize: 12,
+                  fontSize: 13,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  whiteSpace: 'nowrap',
                 }}
               >
+                <span>{meter.label}</span>
                 <div
                   style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    gap: 8,
-                    marginBottom: 6,
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  <span>{meter.label}</span>
-                  <span>{couplingPercent}%</span>
-                </div>
-                <div
-                  style={{
-                    width: 100,
+                    width: 64,
                     height: 6,
                     background: '#e5e7eb',
                     borderRadius: 999,
                     overflow: 'hidden',
+                    flexShrink: 0,
                   }}
                 >
                   <div
@@ -204,6 +197,7 @@ export default function App() {
                     }}
                   />
                 </div>
+                <span>{couplingPercent}%</span>
               </div>
             )
           })}
