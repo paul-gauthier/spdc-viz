@@ -365,13 +365,43 @@ function Optic({ optic, opticState = {}, onOpticYawChange, onDragStart, onDragEn
   const bodyProps = opticType.render.getBodyProps?.({ optic, opticState }) ?? {}
   const rotatable = !!opticType.interaction?.rotatable
   const handleYawOffset = optic.handleYawOffset ?? opticType.interaction?.handleYawOffset ?? 0
+  const baseLabel = optic.label ?? opticType.defaults?.label ?? optic.id
+  const coupling = opticState.coupling ?? 0
+  const showPowerMeter = optic.type === 'fiber' && coupling > 0
+  const powerMeterColor = opticState.couplingColor ?? '#38bdf8'
+  const couplingPercent = Math.round(coupling * 100)
+  const labelContent = showPowerMeter ? (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+      <div>{baseLabel}</div>
+      <div style={{ fontSize: 11, color: '#333' }}>Power {couplingPercent}%</div>
+      <div
+        style={{
+          width: 56,
+          height: 6,
+          background: '#e5e7eb',
+          borderRadius: 999,
+          overflow: 'hidden',
+        }}
+      >
+        <div
+          style={{
+            width: `${couplingPercent}%`,
+            height: '100%',
+            background: powerMeterColor,
+          }}
+        />
+      </div>
+    </div>
+  ) : (
+    baseLabel
+  )
 
   return (
     <MountedOptic
       position={optic.renderPosition}
       yaw={optic.yaw}
       handleYawOffset={handleYawOffset}
-      label={optic.label ?? opticType.defaults?.label ?? optic.id}
+      label={labelContent}
       opticRadius={opticType.render.opticRadius}
       rotatable={rotatable}
       onYawChange={rotatable ? (yaw) => onOpticYawChange(optic.id, yaw) : undefined}
