@@ -4,6 +4,19 @@ import { LEVELS, buildInitialOpticYaws } from './levels'
 import { OpticalScene } from './scene'
 
 const DEFAULT_LEVEL_ID = 'level2'
+const CONTROL_HEIGHT = 32
+const baseControlStyle = {
+  height: CONTROL_HEIGHT,
+  boxSizing: 'border-box',
+  padding: '0 14px',
+  background: 'rgba(255,255,255,0.92)',
+  border: '1px solid #ccc',
+  borderRadius: 6,
+  fontSize: 13,
+  lineHeight: 1,
+  display: 'flex',
+  alignItems: 'center',
+}
 
 export default function App() {
   const level = LEVELS[DEFAULT_LEVEL_ID]
@@ -114,12 +127,11 @@ export default function App() {
           <button
             onClick={handleReset}
             style={{
-              padding: '6px 14px',
-              background: 'rgba(255,255,255,0.92)',
-              border: '1px solid #ccc',
-              borderRadius: 6,
-              fontSize: 13,
+              ...baseControlStyle,
               cursor: 'pointer',
+              justifyContent: 'center',
+              appearance: 'none',
+              WebkitAppearance: 'none',
             }}
           >
             Reset
@@ -127,12 +139,11 @@ export default function App() {
           <button
             onClick={handleJitter}
             style={{
-              padding: '6px 14px',
-              background: 'rgba(255,255,255,0.92)',
-              border: '1px solid #ccc',
-              borderRadius: 6,
-              fontSize: 13,
+              ...baseControlStyle,
               cursor: 'pointer',
+              justifyContent: 'center',
+              appearance: 'none',
+              WebkitAppearance: 'none',
             }}
           >
             Jitter
@@ -140,12 +151,11 @@ export default function App() {
           <button
             onClick={() => setIs2D((v) => !v)}
             style={{
-              padding: '6px 14px',
-              background: 'rgba(255,255,255,0.92)',
-              border: '1px solid #ccc',
-              borderRadius: 6,
-              fontSize: 13,
+              ...baseControlStyle,
               cursor: 'pointer',
+              justifyContent: 'center',
+              appearance: 'none',
+              WebkitAppearance: 'none',
             }}
           >
             {is2D ? '▭ 2D' : '⬡ 3D'}
@@ -167,13 +177,7 @@ export default function App() {
               <div
                 key={meter.id}
                 style={{
-                  padding: '6px 14px',
-                  background: 'rgba(255,255,255,0.92)',
-                  border: '1px solid #ccc',
-                  borderRadius: 6,
-                  fontSize: 13,
-                  display: 'flex',
-                  alignItems: 'center',
+                  ...baseControlStyle,
                   gap: 8,
                   whiteSpace: 'nowrap',
                 }}
