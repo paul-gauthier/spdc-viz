@@ -124,56 +124,6 @@ function getSpdcConeLength(effect, board) {
   return boardExitDistance + extension
 }
 
-function SpdcConeFlowRings({ length, radius, color }) {
-  const ringRefs = useRef([])
-  const ringCount = 5
-  const speed = 0.45
-
-  useFrame((state) => {
-    const time = state.clock.getElapsedTime() * speed
-
-    for (let index = 0; index < ringCount; index += 1) {
-      const ring = ringRefs.current[index]
-      if (!ring?.material) continue
-
-      const progress = (time + index / ringCount) % 1
-      const ringRadius = radius * progress
-
-      ring.position.y = -length / 2 + progress * length
-      ring.scale.set(Math.max(ringRadius, 1e-3), Math.max(ringRadius, 1e-3), 1)
-      ring.material.opacity = 0.12 + 0.28 * (1 - progress)
-    }
-  })
-
-  if (!(length > 0) || !(radius > 0)) return null
-
-  return (
-    <>
-      {Array.from({ length: ringCount }, (_, index) => (
-        <mesh
-          key={index}
-          ref={(node) => {
-            ringRefs.current[index] = node
-          }}
-          rotation={[Math.PI / 2, 0, 0]}
-          renderOrder={14}
-        >
-          <ringGeometry args={[0.92, 1, 48]} />
-          <meshBasicMaterial
-            color={color}
-            transparent
-            opacity={0.2}
-            depthWrite={false}
-            side={THREE.DoubleSide}
-            toneMapped={false}
-            blending={THREE.AdditiveBlending}
-          />
-        </mesh>
-      ))}
-    </>
-  )
-}
-
 function SpdcConeEffect({ effect, board }) {
   const { axis, color = '#ef4444', openingAngle = 0, opacity = 0.18, origin } = effect
   const length = getSpdcConeLength(effect, board)
@@ -208,8 +158,6 @@ function SpdcConeEffect({ effect, board }) {
           toneMapped={false}
         />
       </mesh>
-
-      <SpdcConeFlowRings length={length} radius={radius} color={color} />
 
       <mesh position={[0, length / 2, 0]} rotation={[Math.PI / 2, 0, 0]} renderOrder={13}>
         <ringGeometry args={[rimInnerRadius, radius, 48]} />
