@@ -186,20 +186,31 @@ function SpdcConeEffect({ effect, board }) {
   )
 }
 
-function Fit2DCamera({ board, enabled }) {
+function Fit2DCamera({ board, enabled, controlsRef, topInsetPx = 0 }) {
   const { camera, size } = useThree()
 
   useEffect(() => {
-    if (!enabled || !camera.isOrthographicCamera) return
+    if (!enabled || !camera.isOrthographicCamera || size.width === 0 || size.height === 0) return
 
     const { width, depth } = getBoardSize(board)
-    const margin = board.pitch * 0.6
+    const margin = board.pitch * 1.1
     const paddedWidth = width + margin * 2
     const paddedDepth = depth + margin * 2
+    const safeHeight = Math.max(1, size.height - topInsetPx)
 
-    camera.zoom = Math.min(size.width / paddedWidth, size.height / paddedDepth)
+    camera.zoom = Math.min(size.width / paddedWidth, safeHeight / paddedDepth)
+
+    const verticalOffset = topInsetPx > 0 ? topInsetPx / (2 * camera.zoom) : 0
+    const targetZ = -verticalOffset
+
+    camera.position.z = targetZ
     camera.updateProjectionMatrix()
-  }, [board, camera, enabled, size.height, size.width])
+
+    if (controlsRef.current) {
+      controlsRef.current.target.set(0, POST_HEIGHT / 2, targetZ)
+      controlsRef.current.update()
+    }
+  }, [board, camera, controlsRef, enabled, size.height, size.width, topInsetPx])
 
   return null
 }
@@ -315,6 +326,7 @@ export function OpticalScene({
   onFirst3DInteraction,
   saved3DView,
   onSave3DView,
+  topInsetPx = 0,
   onFiberMetersChange,
 }) {
   const [isDragging, setIsDragging] = useState(false)
@@ -430,7 +442,7 @@ export function OpticalScene({
       <directionalLight position={[4, 8, 4]} intensity={1.2} castShadow />
       <Environment preset="city" />
 
-      <Fit2DCamera board={board} enabled={is2D} />
+      <Fit2DCamera board={board} enabled={is2D} controlsRef={controlsRef} topInsetPx={topInsetPx} />
       <Fit3DCamera
         board={board}
         enabled={!is2D}
