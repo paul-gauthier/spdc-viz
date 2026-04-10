@@ -124,24 +124,48 @@ function getSpdcConeLength(effect, board) {
   return boardExitDistance + extension
 }
 
-function SpdcConeFlowRings({ length, radius, color }) {
-  const ringRefs = useRef([])
-  const ringCount = 5
-  const speed = 0.45
+function SpdcConePhotonPairs({ length, radius, color }) {
+  const pairRefs = useRef([])
+  const pairCount = 8
+  const speed = 0.55
+  const pairStateRef = useRef(
+    Array.from({ length: pairCount }, (_, index) => ({
+      phase: index / pairCount,
+      angle: Math.random() * Math.PI * 2,
+      previousProgress: 0,
+    })),
+  )
 
   useFrame((state) => {
     const time = state.clock.getElapsedTime() * speed
 
-    for (let index = 0; index < ringCount; index += 1) {
-      const ring = ringRefs.current[index]
-      if (!ring?.material) continue
+    for (let index = 0; index < pairCount; index += 1) {
+      const photonA = pairRefs.current[index]?.[0]
+      const photonB = pairRefs.current[index]?.[1]
+      if (!photonA?.material || !photonB?.material) continue
 
-      const progress = (time + index / ringCount) % 1
-      const ringRadius = radius * progress
+      const pairState = pairStateRef.current[index]
+      const progress = (time + pairState.phase) % 1
 
-      ring.position.y = -length / 2 + progress * length
-      ring.scale.set(Math.max(ringRadius, 1e-3), Math.max(ringRadius, 1e-3), 1)
-      ring.material.opacity = 0.12 + 0.28 * (1 - progress)
+      if (progress < pairState.previousProgress) {
+        pairState.angle = Math.random() * Math.PI * 2
+      }
+      pairState.previousProgress = progress
+
+      const y = -length / 2 + progress * length
+      const radialDistance = radius * progress
+      const x = radialDistance * Math.cos(pairState.angle)
+      const z = radialDistance * Math.sin(pairState.angle)
+      const pulse = Math.sin(progress * Math.PI)
+      const scale = 0.65 + pulse * 0.85
+      const opacity = 0.1 + pulse * 0.85
+
+      photonA.position.set(x, y, z)
+      photonB.position.set(-x, y, -z)
+      photonA.scale.setScalar(scale)
+      photonB.scale.setScalar(scale)
+      photonA.material.opacity = opacity
+      photonB.material.opacity = opacity
     }
   })
 
@@ -149,26 +173,43 @@ function SpdcConeFlowRings({ length, radius, color }) {
 
   return (
     <>
-      {Array.from({ length: ringCount }, (_, index) => (
-        <mesh
-          key={index}
-          ref={(node) => {
-            ringRefs.current[index] = node
-          }}
-          rotation={[Math.PI / 2, 0, 0]}
-          renderOrder={14}
-        >
-          <ringGeometry args={[0.92, 1, 48]} />
-          <meshBasicMaterial
-            color={color}
-            transparent
-            opacity={0.2}
-            depthWrite={false}
-            side={THREE.DoubleSide}
-            toneMapped={false}
-            blending={THREE.AdditiveBlending}
-          />
-        </mesh>
+      {Array.from({ length: pairCount }, (_, index) => (
+        <React.Fragment key={index}>
+          <mesh
+            ref={(node) => {
+              if (!pairRefs.current[index]) pairRefs.current[index] = []
+              pairRefs.current[index][0] = node
+            }}
+            renderOrder={14}
+          >
+            <sphereGeometry args={[0.035, 16, 16]} />
+            <meshBasicMaterial
+              color={color}
+              transparent
+              opacity={0.2}
+              depthWrite={false}
+              toneMapped={false}
+              blending={THREE.AdditiveBlending}
+            />
+          </mesh>
+          <mesh
+            ref={(node) => {
+              if (!pairRefs.current[index]) pairRefs.current[index] = []
+              pairRefs.current[index][1] = node
+            }}
+            renderOrder={14}
+          >
+            <sphereGeometry args={[0.035, 16, 16]} />
+            <meshBasicMaterial
+              color={color}
+              transparent
+              opacity={0.2}
+              depthWrite={false}
+              toneMapped={false}
+              blending={THREE.AdditiveBlending}
+            />
+          </mesh>
+        </React.Fragment>
       ))}
     </>
   )
@@ -207,8 +248,7 @@ function SpdcConeEffect({ effect, board }) {
         />
       </mesh>
 
-      <SpdcConeFlowRings length={length} radius={radius} color={color} />
-
+      <SpdcConePhotonPairs length={length} radius={radius} color={color} />
 
       <mesh position={[0, length / 2, 0]} rotation={[Math.PI / 2, 0, 0]} renderOrder={12}>
         <circleGeometry args={[radius, 48]} />
