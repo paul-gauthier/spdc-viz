@@ -82,8 +82,51 @@ export function BreadboardHoles({ board }) {
   return <group>{dots}</group>
 }
 
-function SpdcConeEffect({ effect }) {
-  const { axis, color = '#ef4444', length = 4, openingAngle = 0, opacity = 0.18, origin } = effect
+function getSpdcConeLength(effect, board) {
+  const extension = 1.5
+
+  if (!board) return extension
+
+  const direction = effect.axis.clone().normalize()
+  const { width, depth } = getBoardSize(board)
+  const minX = -width / 2
+  const maxX = width / 2
+  const minZ = -depth / 2
+  const maxZ = depth / 2
+  const originX = effect.origin.x
+  const originZ = effect.origin.z
+  const candidates = []
+
+  const pushCandidate = (distance) => {
+    if (!(distance > 0)) return
+
+    const x = originX + direction.x * distance
+    const z = originZ + direction.z * distance
+
+    if (x < minX - 1e-6 || x > maxX + 1e-6) return
+    if (z < minZ - 1e-6 || z > maxZ + 1e-6) return
+
+    candidates.push(distance)
+  }
+
+  if (Math.abs(direction.x) >= 1e-6) {
+    pushCandidate((minX - originX) / direction.x)
+    pushCandidate((maxX - originX) / direction.x)
+  }
+
+  if (Math.abs(direction.z) >= 1e-6) {
+    pushCandidate((minZ - originZ) / direction.z)
+    pushCandidate((maxZ - originZ) / direction.z)
+  }
+
+  const boardExitDistance = candidates.length > 0 ? Math.min(...candidates) : 0
+
+  return boardExitDistance + extension
+}
+
+function SpdcConeEffect({ effect, board }) {
+  const { axis, color = '#ef4444', openingAngle = 0, opacity = 0.18, origin } = effect
+  const length = getSpdcConeLength(effect, board)
   const radius = length * Math.tan(openingAngle)
 
   const { position, quaternion } = useMemo(() => {
@@ -326,7 +369,7 @@ export function OpticalScene({
       .filter((effect) => effect.type === 'spdcCone')
       .forEach((effect) => {
         const direction = effect.axis.clone().normalize()
-        const length = effect.length ?? 0
+        const length = getSpdcConeLength(effect, board)
         const end = effect.origin.clone().add(direction.multiplyScalar(length))
         const radius = length * Math.tan(effect.openingAngle ?? 0)
 
@@ -401,7 +444,7 @@ export function OpticalScene({
         ? beamResult.effects
             .filter((effect) => effect.type === 'spdcCone')
             .map((effect, index) => (
-              <SpdcConeEffect key={`${effect.id ?? 'spdc-cone'}-${index}`} effect={effect} />
+              <SpdcConeEffect key={`${effect.id ?? 'spdc-cone'}-${index}`} effect={effect} board={board} />
             ))
         : null}
 
