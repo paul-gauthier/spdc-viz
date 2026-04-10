@@ -30,7 +30,7 @@ function Label({ children, position, is2D = false }) {
           borderRadius: 6,
           fontSize: 12,
           whiteSpace: 'nowrap',
-          transform: 'translate(10px, -110%)',
+          transform: is2D ? 'translate(calc(-100% - 10px), 10px)' : 'translate(10px, -110%)',
           pointerEvents: 'none',
           userSelect: 'none',
           WebkitUserSelect: 'none',
