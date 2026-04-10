@@ -280,7 +280,7 @@ function Fit3DCamera({ board, enabled, controlsRef, savedView, sceneBounds }) {
   return null
 }
 
-function Optic({ optic, opticState = {}, onOpticYawChange, onDragStart, onDragEnd }) {
+function Optic({ is2D, optic, opticState = {}, onOpticYawChange, onDragStart, onDragEnd }) {
   const opticType = getOpticType(optic.type)
   const Body = opticType.render.Body
   const bodyProps = opticType.render.getBodyProps?.({ optic, opticState }) ?? {}
@@ -294,6 +294,7 @@ function Optic({ optic, opticState = {}, onOpticYawChange, onDragStart, onDragEn
       yaw={optic.yaw}
       handleYawOffset={handleYawOffset}
       label={baseLabel}
+      is2D={is2D}
       opticRadius={opticType.render.opticRadius}
       rotatable={rotatable}
       onYawChange={rotatable ? (yaw) => onOpticYawChange(optic.id, yaw) : undefined}
@@ -443,6 +444,7 @@ export function OpticalScene({
       {optics.map((optic) => (
         <Optic
           key={optic.id}
+          is2D={is2D}
           optic={optic}
           opticState={beamResult.opticStateById[optic.id] ?? {}}
           onOpticYawChange={onOpticYawChange}

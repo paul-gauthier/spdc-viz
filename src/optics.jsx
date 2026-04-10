@@ -9,12 +9,12 @@ import {
   clamp01,
 } from './simulationCore'
 
-function Label({ children, position }) {
+function Label({ children, position, is2D = false }) {
   return (
     <Html
       position={position}
-      occlude
-      distanceFactor={10}
+      occlude={!is2D}
+      distanceFactor={is2D ? undefined : 10}
       style={{
         pointerEvents: 'none',
         userSelect: 'none',
@@ -197,6 +197,7 @@ export function MountedOptic({
   yaw = 0,
   handleYawOffset = 0,
   label,
+  is2D = false,
   opticRadius,
   rotatable = false,
   onYawChange,
@@ -341,7 +342,9 @@ export function MountedOptic({
         <meshStandardMaterial color="#d4d4d8" metalness={0.9} roughness={0.18} />
       </mesh>
 
-      <Label position={[0.18, 0.32, 0.18]}>{label}</Label>
+      <Label position={[0.18, 0.32, 0.18]} is2D={is2D}>
+        {label}
+      </Label>
     </group>
   )
 }
