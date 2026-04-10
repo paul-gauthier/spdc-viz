@@ -94,7 +94,7 @@ export default function App() {
         style={{
           position: 'absolute',
           top: 12,
-          right: 12,
+          left: 12,
           display: 'flex',
           flexDirection: 'row',
           gap: 8,
