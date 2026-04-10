@@ -140,17 +140,31 @@ function FiberFill({ power, color = '#38bdf8', glowColor = '#0ea5e9' }) {
 }
 
 function FiberPigtail() {
-  const curve = useMemo(
-    () =>
-      new THREE.CatmullRomCurve3([
-        new THREE.Vector3(FIBER_LENGTH / 2 + 0.015, 0, 0),
-        new THREE.Vector3(FIBER_LENGTH / 2 + 0.12, -0.015, 0),
-        new THREE.Vector3(FIBER_LENGTH / 2 + 0.28, -0.08, 0.03),
-        new THREE.Vector3(FIBER_LENGTH / 2 + 0.5, -0.22, 0.08),
-        new THREE.Vector3(FIBER_LENGTH / 2 + 0.72, -0.38, 0.14),
-      ]),
-    [],
-  )
+  const curve = useMemo(() => {
+    const horizontalLength = 0.18
+    const bendRadius = 0.12
+    const verticalLength = 0.26
+    const k = 0.5522847498
+
+    const start = new THREE.Vector3(FIBER_LENGTH / 2 + 0.015, 0, 0)
+    const straightEnd = new THREE.Vector3(start.x + horizontalLength, 0, 0)
+    const bendEnd = new THREE.Vector3(straightEnd.x + bendRadius, -bendRadius, 0)
+    const end = new THREE.Vector3(bendEnd.x, bendEnd.y - verticalLength, 0)
+
+    const path = new THREE.CurvePath()
+    path.add(new THREE.LineCurve3(start, straightEnd))
+    path.add(
+      new THREE.CubicBezierCurve3(
+        straightEnd,
+        new THREE.Vector3(straightEnd.x + bendRadius * k, straightEnd.y, 0),
+        new THREE.Vector3(bendEnd.x, bendEnd.y + bendRadius * k, 0),
+        bendEnd,
+      ),
+    )
+    path.add(new THREE.LineCurve3(bendEnd, end))
+
+    return path
+  }, [])
 
   return (
     <>
