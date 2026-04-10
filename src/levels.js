@@ -85,12 +85,14 @@ export const level2 = {
       type: 'fiber',
       hole: [10, 2],
       yaw: Math.atan2(1, -5) + Math.PI,
+      label: 'Signal',
     },
     {
       id: 'idler',
       type: 'fiber',
       hole: [10, 0],
       yaw: Math.atan2(-1, -5) + Math.PI,
+      label: 'Idler',
     },
   ],
   beams: [
