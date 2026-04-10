@@ -461,7 +461,7 @@ export function OpticalScene({
         />
       ))}
 
-      {(is2D ? beamResult.beams : beamResult.beams.filter((beam) => beam.beamType !== 'spdc')).map((beam) => (
+      {beamResult.beams.map((beam) => (
         <Beam
           key={beam.id}
           points={beam.path}
