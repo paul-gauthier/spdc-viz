@@ -65,7 +65,7 @@ export function SpdcBody() {
   return (
     <mesh rotation={[0, 0, Math.PI / 2]} castShadow>
       <cylinderGeometry args={[0.5, 0.5, 0.18, 32]} />
-      <meshStandardMaterial color="#ef4444" transparent opacity={0.45} metalness={0.1} roughness={0.05} />
+      <meshStandardMaterial color="#ffffff" transparent opacity={0.45} metalness={0.1} roughness={0.05} />
     </mesh>
   )
 }
