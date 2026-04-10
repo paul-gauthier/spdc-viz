@@ -180,20 +180,13 @@ function FiberPigtail() {
   )
 }
 
-export function FiberBody({
-  coupling = 0,
-  couplingColor = '#38bdf8',
-  couplingGlowColor = '#0ea5e9',
-}) {
-  const power = clamp01(coupling)
-
+export function FiberBody() {
   return (
     <>
       <mesh rotation={[0, 0, Math.PI / 2]} castShadow>
         <cylinderGeometry args={[FIBER_NEGATIVE_X_FACE_RADIUS, FIBER_POSITIVE_X_FACE_RADIUS, FIBER_LENGTH, 32]} />
         <meshStandardMaterial color="#555" metalness={0.5} roughness={0.5} />
       </mesh>
-      <FiberFill power={power} color={couplingColor} glowColor={couplingGlowColor} />
       <FiberPigtail />
     </>
   )
