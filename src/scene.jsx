@@ -191,7 +191,9 @@ function SpdcConeEffect({ effect, board }) {
   if (!(length > 0) || !(radius > 0)) return null
 
   const fillOpacity = Math.max(opacity, 0.14)
+  const rimOpacity = Math.min(0.95, fillOpacity + 0.6)
   const capOpacity = Math.min(0.22, fillOpacity * 0.7 + 0.04)
+  const rimInnerRadius = Math.max(0, radius - Math.min(0.05, Math.max(radius * 0.12, 0.015)))
 
   return (
     <group position={[position.x, position.y, position.z]} quaternion={quaternion}>
@@ -209,6 +211,17 @@ function SpdcConeEffect({ effect, board }) {
 
       <SpdcConeFlowRings length={length} radius={radius} color={color} />
 
+      <mesh position={[0, length / 2, 0]} rotation={[Math.PI / 2, 0, 0]} renderOrder={13}>
+        <ringGeometry args={[rimInnerRadius, radius, 48]} />
+        <meshBasicMaterial
+          color={color}
+          transparent
+          opacity={rimOpacity}
+          depthWrite={false}
+          side={THREE.DoubleSide}
+          toneMapped={false}
+        />
+      </mesh>
 
       <mesh position={[0, length / 2, 0]} rotation={[Math.PI / 2, 0, 0]} renderOrder={12}>
         <circleGeometry args={[radius, 48]} />
