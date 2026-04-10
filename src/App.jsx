@@ -5,7 +5,7 @@ import { OpticalScene } from './scene'
 
 const DEFAULT_LEVEL_ID = 'level2'
 const CONTROL_HEIGHT = 32
-const TWO_D_TOP_UI_INSET = 64
+const TWO_D_TOP_UI_INSET = 32
 const baseControlStyle = {
   height: CONTROL_HEIGHT,
   boxSizing: 'border-box',

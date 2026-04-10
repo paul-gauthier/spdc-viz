@@ -193,7 +193,7 @@ function Fit2DCamera({ board, enabled, controlsRef, topInsetPx = 0 }) {
     if (!enabled || !camera.isOrthographicCamera || size.width === 0 || size.height === 0) return
 
     const { width, depth } = getBoardSize(board)
-    const margin = board.pitch * 1.1
+    const margin = board.pitch * 0.75
     const paddedWidth = width + margin * 2
     const paddedDepth = depth + margin * 2
     const safeHeight = Math.max(1, size.height - topInsetPx)
