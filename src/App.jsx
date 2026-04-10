@@ -10,6 +10,7 @@ export default function App() {
   const [is2D, setIs2D] = useState(false)
   const [hasUserInteracted3D, setHasUserInteracted3D] = useState(false)
   const [opticYaws, setOpticYaws] = useState(() => buildInitialOpticYaws(level))
+  const [fiberMeters, setFiberMeters] = useState([])
   const saved3DViewRef = useRef(null)
 
   const handleSave3DView = useCallback((view) => {
@@ -88,6 +89,7 @@ export default function App() {
           onFirst3DInteraction={handleFirst3DInteraction}
           saved3DView={saved3DViewRef.current}
           onSave3DView={handleSave3DView}
+          onFiberMetersChange={setFiberMeters}
         />
       </Canvas>
       <div
@@ -95,51 +97,117 @@ export default function App() {
           position: 'absolute',
           top: 12,
           left: 12,
+          right: 12,
           display: 'flex',
-          flexDirection: 'row',
-          gap: 8,
+          justifyContent: 'space-between',
+          alignItems: 'flex-start',
           zIndex: 10,
         }}
       >
-        <button
-          onClick={handleReset}
+        <div
           style={{
-            padding: '6px 14px',
-            background: 'rgba(255,255,255,0.92)',
-            border: '1px solid #ccc',
-            borderRadius: 6,
-            fontSize: 13,
-            cursor: 'pointer',
+            display: 'flex',
+            flexDirection: 'row',
+            gap: 8,
           }}
         >
-          Reset
-        </button>
-        <button
-          onClick={handleJitter}
+          <button
+            onClick={handleReset}
+            style={{
+              padding: '6px 14px',
+              background: 'rgba(255,255,255,0.92)',
+              border: '1px solid #ccc',
+              borderRadius: 6,
+              fontSize: 13,
+              cursor: 'pointer',
+            }}
+          >
+            Reset
+          </button>
+          <button
+            onClick={handleJitter}
+            style={{
+              padding: '6px 14px',
+              background: 'rgba(255,255,255,0.92)',
+              border: '1px solid #ccc',
+              borderRadius: 6,
+              fontSize: 13,
+              cursor: 'pointer',
+            }}
+          >
+            Jitter
+          </button>
+          <button
+            onClick={() => setIs2D((v) => !v)}
+            style={{
+              padding: '6px 14px',
+              background: 'rgba(255,255,255,0.92)',
+              border: '1px solid #ccc',
+              borderRadius: 6,
+              fontSize: 13,
+              cursor: 'pointer',
+            }}
+          >
+            {is2D ? '▭ 2D' : '⬡ 3D'}
+          </button>
+        </div>
+
+        <div
           style={{
-            padding: '6px 14px',
-            background: 'rgba(255,255,255,0.92)',
-            border: '1px solid #ccc',
-            borderRadius: 6,
-            fontSize: 13,
-            cursor: 'pointer',
+            display: 'flex',
+            flexDirection: 'row',
+            gap: 8,
+            alignItems: 'flex-start',
           }}
         >
-          Jitter
-        </button>
-        <button
-          onClick={() => setIs2D((v) => !v)}
-          style={{
-            padding: '6px 14px',
-            background: 'rgba(255,255,255,0.92)',
-            border: '1px solid #ccc',
-            borderRadius: 6,
-            fontSize: 13,
-            cursor: 'pointer',
-          }}
-        >
-          {is2D ? '▭ 2D' : '⬡ 3D'}
-        </button>
+          {fiberMeters.map((meter) => {
+            const couplingPercent = Math.round(meter.coupling * 100)
+
+            return (
+              <div
+                key={meter.id}
+                style={{
+                  minWidth: 120,
+                  padding: '6px 10px',
+                  background: 'rgba(255,255,255,0.92)',
+                  border: '1px solid #ccc',
+                  borderRadius: 6,
+                  fontSize: 12,
+                }}
+              >
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    gap: 8,
+                    marginBottom: 6,
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  <span>{meter.label}</span>
+                  <span>{couplingPercent}%</span>
+                </div>
+                <div
+                  style={{
+                    width: 100,
+                    height: 6,
+                    background: '#e5e7eb',
+                    borderRadius: 999,
+                    overflow: 'hidden',
+                  }}
+                >
+                  <div
+                    style={{
+                      width: `${meter.coupling * 100}%`,
+                      height: '100%',
+                      background: meter.color,
+                    }}
+                  />
+                </div>
+              </div>
+            )
+          })}
+        </div>
       </div>
     </div>
   )
